@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="/lib/pace/pace-theme-bounce.min.css">
+  <script src="/lib/pace/pace.min.js"></script>
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"tienyulin.github.io","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"appID":"CKNGBQCM6Q","apiKey":"aa8f782cff7f67f246a3fd15f8592fc1","indexName":"tienyulin.github.com","hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="在執行指令時有時候會需要下多個指令才能獲取我們想要的資料，很多時候都是因為要先看到前一個指令的輸出再將輸出內容代到下一個指令中。但是這樣就要分很多次執行效率並不高，此外如果想要用 Shell Script 執行一連串的指令的話這樣是行不通的。因此這時我們就需要用到 Linux 所支援的管線命令，可以將前一個指令的輸出代入到下一個指令中。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Linux (七) - 管線命令 (pipe)">
+<meta property="og:url" content="https://tienyulin.github.io/linux-pipe/">
+<meta property="og:site_name" content="Tienyu Note">
+<meta property="og:description" content="在執行指令時有時候會需要下多個指令才能獲取我們想要的資料，很多時候都是因為要先看到前一個指令的輸出再將輸出內容代到下一個指令中。但是這樣就要分很多次執行效率並不高，此外如果想要用 Shell Script 執行一連串的指令的話這樣是行不通的。因此這時我們就需要用到 Linux 所支援的管線命令，可以將前一個指令的輸出代入到下一個指令中。">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2020-10-21T00:00:00.000Z">
+<meta property="article:modified_time" content="2020-10-21T00:00:00.000Z">
+<meta property="article:author" content="Tien-Yu Lin">
+<meta property="article:tag" content="Linux">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://tienyulin.github.io/linux-pipe/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>Linux (七) - 管線命令 (pipe) | Tienyu Note</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-169323232-1"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'UA-169323232-1');
+      }
+    </script>
+
+
+
+
+
+
+
+<script data-ad-client="ca-pub-8271558544185929" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Tienyu Note</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">Fly with me</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives<span class="badge">44</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-folder-open fa-fw"></i>Categories<span class="badge">27</span></a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags<span class="badge">28</span></a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-sitemap">
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-sitemap fa-fw"></i>Sitemap</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container"></div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="algolia-results">
+  <div id="algolia-stats"></div>
+  <div id="algolia-hits"></div>
+  <div id="algolia-pagination" class="algolia-pagination"></div>
+</div>
+
+      
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/tienyulin" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="https://tienyulin.github.io/linux-pipe/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/tienyu.jpg">
+      <meta itemprop="name" content="Tien-Yu Lin">
+      <meta itemprop="description" content="Try not to become a man of success, but rather try to become a man of value. - Albert Einstein">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Tienyu Note">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Linux (七) - 管線命令 (pipe)
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2020-10-21 00:00:00" itemprop="dateCreated datePublished" datetime="2020-10-21T00:00:00+00:00">2020-10-21</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Linux/" itemprop="url" rel="index"><span itemprop="name">Linux</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="Views" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">Views: </span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus: </span>
+    
+    <a title="disqus" href="/linux-pipe/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="linux-pipe/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>在執行指令時有時候會需要下多個指令才能獲取我們想要的資料，很多時候都是因為要先看到前一個指令的輸出再將輸出內容代到下一個指令中。但是這樣就要分很多次執行效率並不高，此外如果想要用 <code>Shell Script</code> 執行一連串的指令的話這樣是行不通的。因此這時我們就需要用到 Linux 所支援的管線命令，可以將前一個指令的輸出代入到下一個指令中。</p>
+<a id="more"></a>
+<h2 id="使用方式"><a class="header-anchor" href="#使用方式"></a>使用方式</h2>
+<p>管線命令的使用方式是透過 <code>|</code> 這個符號來連結前一個命令的輸出和下一個命令的輸入。如下 :</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[command1] | [command2] | [command3] | ...</span><br></pre></td></tr></table></figure>
+<p>所以 <code>command2</code> 會處理 <code>command1</code> 所傳進來的資料，而 <code>command3</code> 會再處理 <code>command2</code> 傳進來的資料，以此類推。</p>
+<p>👁‍🗨 這裡要注意的是在 <code>|</code> 後面所接的指令要是可以接收 <code>stdin</code> 的才行，例如 : less、more。此外管線命令只能接收前一個命令傳入的 <code>stdout</code>，會忽略 <code>stderr</code>，也就是說只能接收正確的訊息。</p>
+<p><code>stdin</code>、<code>stdout</code>、<code>stderr</code> 稱為標準串流，請參考 <a href="https://zh.wikipedia.org/wiki/%E6%A8%99%E6%BA%96%E4%B8%B2%E6%B5%81" target="_blank" rel="noopener">維基百科</a> 介紹。</p>
+<p><strong>範例</strong><br>
+下面這個範例可以看到由 <code>ls -l /etc</code> 和 <code>less</code> 兩個指令藉由 <code>|</code> 組成，也就是說 <code>less</code> 指令會接收 <code>ls -l /etc</code> 所輸出的內容再進行處理。所以原本 <code>ls -l /etc</code> 單獨執行的話會輸出非常多的檔案詳細資料，但是透過 <code>less</code> 去承接 <code>ls -l /etc</code> 輸出的內容再顯示就可以前後翻輸出的內容。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">$ ls -l /etc | less</span><br><span class="line"></span><br><span class="line">total 1168</span><br><span class="line">drwxr-xr-x.  3 root               root                  101 Aug 27 00:55 abrt</span><br><span class="line">-rw-r--r--.  1 root               root                   16 Aug 27 01:00 adjtime</span><br><span class="line">-rw-r--r--.  1 root               root                 1529 Apr  1  2020 aliases</span><br><span class="line">-rw-r--r--.  1 root               root                12288 Sep 21 02:26 aliases.db</span><br><span class="line">drwxr-xr-x.  2 root               root                  261 Aug 27 01:03 alternatives</span><br><span class="line">-rw-------.  1 root               root                  541 Aug  8  2019 anacrontab</span><br><span class="line">-rw-r--r--.  1 root               root                   55 Aug  8  2019 asound.conf</span><br><span class="line">-rw-r--r--.  1 root               root                    1 Oct 30  2018 at.deny</span><br><span class="line">drwxr-x---.  3 root               root                   43 Aug 27 00:56 audisp</span><br><span class="line">drwxr-x---.  3 root               root                   83 Sep 21 02:25 audit</span><br><span class="line">drwxr-xr-x.  2 root               root                  148 Oct 13 06:10 bash_completion.d</span><br><span class="line">-rw-r--r--.  1 root               root                 2853 Apr  1  2020 bashrc</span><br><span class="line">drwxr-xr-x.  2 root               root                    6 Aug  6 17:30 binfmt.d</span><br><span class="line">-rw-r--r--.  1 root               root                   37 Apr  7  2020 centos-release</span><br><span class="line">-rw-r--r--.  1 root               root                   51 Apr  7  2020 centos-release-upstream</span><br><span class="line">drwxr-xr-x.  2 root               root                    6 Aug  4  2017 chkconfig.d</span><br><span class="line">-rw-r--r--.  1 root               root                 1142 Aug 27 01:06 chrony.conf</span><br><span class="line">-rw-r-----.  1 root               chrony                481 Aug  8  2019 chrony.keys</span><br><span class="line">drwxr-xr-x.  2 root               root                   26 Aug 27 01:02 cifs-utils</span><br><span class="line">:</span><br></pre></td></tr></table></figure>
+<h2 id="常用搭配指令"><a class="header-anchor" href="#常用搭配指令"></a>常用搭配指令</h2>
+<h3 id="cut"><a class="header-anchor" href="#cut"></a>cut</h3>
+<p>cut 指令可以用於逐行擷取部分欄位或字元。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cut [option] [file]</span><br></pre></td></tr></table></figure>
+<p>option :</p>
+<ul>
+<li>-c : 指定字元 (character)，例如 : 2-5 代表第 2 到 第 5 個字元；2-5,7 代表第 2 到第 5 個字元加上第 7 個字元。</li>
+<li>-d : 指定欄位的分隔符號 (delima)，可以用於 CSV 等等的檔案取得特定欄位時的分隔。</li>
+<li>-f : 指定欄位 (field)，可以搭配 <code>-d</code> 來分隔出欄位再指定想要的欄位。指定格式和 <code>-c</code> 相同。</li>
+<li><code>--complement</code> : 排除指定的內容，會將 <code>cut</code> 指定的內容刪除，留下剩餘的內容。</li>
+</ul>
+<p><strong>範例</strong><br>
+首先先建立一個測試用的 CSV 檔，如下 :</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">$ cat &gt; test.csv</span><br><span class="line">id,name,sex,score</span><br><span class="line">1,tony,male,67</span><br><span class="line">2,simon,male,66</span><br><span class="line">3,mary,female,77</span><br><span class="line">4,lucy,female,89</span><br><span class="line">5,frank,male,98</span><br></pre></td></tr></table></figure>
+<p>接著對 <code>test.csv</code> 進行 <code>cut</code> 擷取字元，下面三個分別是擷取字元、擷取欄位及排除指定的內容。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">$ cut -c 2,5-7 test.csv</span><br><span class="line">dame</span><br><span class="line">,ny,</span><br><span class="line">,mon</span><br><span class="line">,ry,</span><br><span class="line">,cy,</span><br><span class="line">,ank</span><br><span class="line"></span><br><span class="line">$ cut -d , -f 1,3-4 test.csv</span><br><span class="line">id,sex,score</span><br><span class="line">1,male,67</span><br><span class="line">2,male,66</span><br><span class="line">3,female,77</span><br><span class="line">4,female,89</span><br><span class="line">5,male,98</span><br><span class="line"></span><br><span class="line">$ cut -d , -f 1,3-4 test.csv --complement</span><br><span class="line">name</span><br><span class="line">tony</span><br><span class="line">simon</span><br><span class="line">mary</span><br><span class="line">lucy</span><br><span class="line">frank</span><br></pre></td></tr></table></figure>
+<p>上面用的範例是直接讀取檔案，這裡我們就換用 <code>管線命令</code> 的方式來取得。先使用 <code>cat</code> 指令將檔案輸出，接著 <code>cut</code> 指令再將輸出進行擷取處理，所以可以看到下面的結果和上面的輸出結果是相同的。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">$ cat test.csv | cut -c 2,5-7</span><br><span class="line">dame</span><br><span class="line">,ny,</span><br><span class="line">,mon</span><br><span class="line">,ry,</span><br><span class="line">,cy,</span><br><span class="line">,ank</span><br><span class="line"></span><br><span class="line">$ cat test.csv | cut -d , -f 1,3-4</span><br><span class="line">id,sex,score</span><br><span class="line">1,male,67</span><br><span class="line">2,male,66</span><br><span class="line">3,female,77</span><br><span class="line">4,female,89</span><br><span class="line">5,male,98</span><br><span class="line"></span><br><span class="line">$ cat test.csv | cut -d , -f 1,3-4 --complement</span><br><span class="line">name</span><br><span class="line">tony</span><br><span class="line">simon</span><br><span class="line">mary</span><br><span class="line">lucy</span><br><span class="line">frank</span><br></pre></td></tr></table></figure>
+<h3 id="grep"><a class="header-anchor" href="#grep"></a>grep</h3>
+<p>grep 可以從檔案或串流中取得想要尋找的資料並顯示出來，尋找方式可以是關鍵字或是正規表示法 (regular expression)。而找到的的資料會是整行都輸出。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep [option] [match pattern] [file|dir]...</span><br></pre></td></tr></table></figure>
+<p>option :</p>
+<ul>
+<li>-i、<code>--ignore-case</code> : 不分大小寫。</li>
+<li>-n、<code>--line-number</code> : 標示與搜尋要求匹配的行號。</li>
+<li>-v、<code>--invert-match</code> : 反向匹配，即排除要求的內容，留下不包含要求的內容。</li>
+<li>-r、<code>--recursive</code> : 遞迴搜尋指定目錄與其子目錄下的所有檔案。</li>
+<li>-A、<code>--after-context=NUM</code> : 指定多輸出匹配資料的後幾行。</li>
+<li>-B、<code>--before-context=NUM</code> : 指定多輸出匹配資料的前幾行。</li>
+<li>-C、<code>--context=NUM</code> : 指定多輸出匹配資料的前後幾行。</li>
+</ul>
+<p>match pattern 可以輸入想要搜尋的條件，可以是關鍵字或是正規表示法。</p>
+<p>file|dir 可以是檔案或是目錄，一般情況是用檔案，如果想要搜尋目錄需要搭配 <code>-r</code> 使用。</p>
+<p><strong>範例</strong><br>
+我們利用剛剛 <code>cut</code> 指令建好的 <code>test.csv</code> 來測試，可以看到直接指定關鍵字 <code>mary</code> 會將跟 <code>mary</code> 有關的資料整行都輸出。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ grep mary test.csv</span><br><span class="line">3,mary,female,77</span><br></pre></td></tr></table></figure>
+<p><code>grep</code> 指令也可以搭配萬用字元 <code>*</code> 來一次搜尋多個檔案，這裡我們將 <code>test.csv</code> 複製一個新的 <code>test2.csv</code>，接著用萬用字元在多個檔案中搜尋 <code>mary</code>，結果如下 :</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ cp test.csv test2.csv</span><br><span class="line"></span><br><span class="line">$ grep mary *.csv</span><br><span class="line">test.csv:3,mary,female,77</span><br><span class="line">test2.csv:3,mary,female,77</span><br></pre></td></tr></table></figure>
+<p>接著將 <code>test.csv</code> 新增一筆有大寫的資料，我們來測試忽略大小寫的功能。可以看到最後結果會找到包含大小寫的資料。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">$ cat &gt;&gt; test.csv</span><br><span class="line">6,Mary,female,85</span><br><span class="line"></span><br><span class="line">$ grep -i mary test.csv</span><br><span class="line">3,mary,female,77</span><br><span class="line">6,Mary,female,85</span><br></pre></td></tr></table></figure>
+<p>如果想要輸出行號的話可以加上 <code>-n</code>，則就會在輸出的第一行顯示行號，如下 :</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ grep -<span class="keyword">in</span> mary test.csv</span><br><span class="line">4:3,mary,female,77</span><br><span class="line">7:6,Mary,female,85</span><br></pre></td></tr></table></figure>
+<p>當搜尋的條件是不想出現的就可以加上 <code>-v</code> 就會排除指定的條件並輸出剩餘的內容。如下 :</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">$ grep -v mary test.csv</span><br><span class="line">id,name,sex,score</span><br><span class="line">1,tony,male,67</span><br><span class="line">2,simon,male,66</span><br><span class="line">4,lucy,female,89</span><br><span class="line">5,frank,male,98</span><br><span class="line">6,Mary,female,85</span><br></pre></td></tr></table></figure>
+<p>有些情況可能需要找到某個目錄下的所有檔案中的某個關鍵字，這時就可以用 <code>-r</code> 並指定目錄就可以遞迴搜尋這個目錄下的所有檔案。下面這個範例我們先建立兩層測試用的目錄，並將 <code>test.csv</code> 複製進去。接著在下 <code>-r</code> 搭配目錄去搜尋，可以發現最後找到了兩個不同目錄下的 <code>test.csv</code> 裡面都有指定的條件。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">$ mkdir dir1</span><br><span class="line">$ cp test.csv dir1/test.csv</span><br><span class="line">$ mkdir dir1/dir2</span><br><span class="line">$ cp test.csv dir1/dir2/test.csv</span><br><span class="line"></span><br><span class="line">$ grep -r mary dir1</span><br><span class="line">dir1/dir2/test.csv:3,mary,female,77</span><br><span class="line">dir1/test.csv:3,mary,female,77</span><br></pre></td></tr></table></figure>
+<p>有時候只輸出找到的那一行可能會不太確定是不是真的要找的內容，這時就可以使用 <code>-ABC</code> 這三個選項來指定要多輸出前後幾行的資料。如下 :</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 多輸出後一行</span></span><br><span class="line">$ grep -A 1 mary test.csv</span><br><span class="line">3,mary,female,77</span><br><span class="line">4,lucy,female,89</span><br><span class="line"></span><br><span class="line"><span class="comment"># 多輸出前一行</span></span><br><span class="line">$ grep -B 1 mary test.csv</span><br><span class="line">2,simon,male,66</span><br><span class="line">3,mary,female,77</span><br><span class="line"></span><br><span class="line"><span class="comment"># 多輸出前後各一行</span></span><br><span class="line">$ grep -C 1 mary test.csv</span><br><span class="line">2,simon,male,66</span><br><span class="line">3,mary,female,77</span><br><span class="line">4,lucy,female,89</span><br></pre></td></tr></table></figure>
+<p>前面有介紹到也可以使用正規表示法來指定搜尋條件，下面這個範例就用正規表示法指定搜尋開頭是 <code>5</code> 的資料，如下 :</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ grep <span class="string">"^5"</span> test.csv</span><br><span class="line">5,frank,male,98</span><br></pre></td></tr></table></figure>
+<p>最後我們使用 <code>管線命令</code> 來操作 <code>grep</code>，可以看到 <code>grep</code> 命令將 <code>ls</code> 命令的輸出進行處理後再將結果輸出，如下 :</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ ls | grep <span class="string">"^t"</span></span><br><span class="line">test.csv</span><br><span class="line">test2.csv</span><br></pre></td></tr></table></figure>
+<h2 id="Summary"><a class="header-anchor" href="#Summary"></a>Summary</h2>
+<p>本篇介紹了如何使用管線命令將多個命令串在一起，他的方便性是可以直接將前一個命令的輸出交給下一個命令作為輸入，節省自己慢慢一個命令一個命令下還有找到下一個命令要輸入的內容。</p>
+<p>還有一些可以使用管線命令的指令，例如 : sort(資料排序)、uniq (顯示不重複資料)、col(過濾反向換行)、sed(內容替換)、join(合併兩個檔案的相同資料)。</p>
+<h2 id="參考"><a class="header-anchor" href="#參考"></a>參考</h2>
+<p>[1] <a href="https://dywang.csie.cyut.edu.tw/moodle23/dywang/linuxProgram/node15.html" target="_blank" rel="noopener">管線命令 (pipe)</a><br>
+[2] <a href="http://linux.vbird.org/linux_basic_train/unit02.php" target="_blank" rel="noopener">指令下達行為與基礎檔案管理</a><br>
+[3] <a href="https://www.twblogs.net/a/5d469b25bd9eee5327fb71fa" target="_blank" rel="noopener">Linux 之 Bash – 管線命令</a><br>
+[4] <a href="https://blog.gtwang.org/linux/linux-cut-command-tutorial-and-examples/" target="_blank" rel="noopener">Linux 的 cut 擷取部份字元、欄位指令教學與常用範例整理</a><br>
+[5] <a href="https://blog.gtwang.org/linux/linux-grep-command-tutorial-examples/" target="_blank" rel="noopener">Linux 匹配文字 grep 指令用法教學與範例</a><br>
+[6] <a href="https://man.linuxde.net/grep" target="_blank" rel="noopener">grep命令</a><br>
+[7] <a href="http://linux.vbird.org/linux_basic/0330regularex.php#basicre" target="_blank" rel="noopener">正規表示法與文件格式化處理 | 鳥哥</a></p>
+
+    </div>
+
+    
+    
+    
+      
+  <div class="popular-posts-header">系列文章</div>
+  <ul class="popular-posts">
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/linux-disk-management/" rel="bookmark">Linux (五) - 硬碟管理</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/linux-file-chgrp-chown-chmod/" rel="bookmark">Linux (三) - 檔案的基本屬性與權限</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/linux-shell-basic-concept/" rel="bookmark">Linux (十) - Shell 的基本概念和操作</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/linux-ssh-tunnel/" rel="bookmark">Linux (九) - SSH Tunnel 突破防火牆限制</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/linux-ssh/" rel="bookmark">Linux (八) - SSH 安全加密連線</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/linux-basic-concept-command/" rel="bookmark">Linux (一) - 基本概念與系統操作</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/linux-file-directory-operation/" rel="bookmark">Linux (四) - 檔案與目錄操作</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/linux-filesystem/" rel="bookmark">Linux (二) - 檔案系統架構</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/linux-shell-variable/" rel="bookmark">Linux (十一) - Shell 的變數設定</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/linux-user-group-management/" rel="bookmark">Linux (六) - 使用者和群組管理</a></div>
+    </li>
+  </ul>
+
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/tags/Linux/" rel="tag"><i class="fa fa-tag"></i> Linux</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/linux-user-group-management/" rel="prev" title="Linux (六) - 使用者和群組管理">
+      <i class="fa fa-chevron-left"></i> Linux (六) - 使用者和群組管理
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/linux-ssh/" rel="next" title="Linux (八) - SSH 安全加密連線">
+      Linux (八) - SSH 安全加密連線 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<!-- tienyulin.github -->
+<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-8271558544185929"
+     data-ad-slot="8611071932"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#使用方式"><span class="nav-number">1.</span> <span class="nav-text">使用方式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#常用搭配指令"><span class="nav-number">2.</span> <span class="nav-text">常用搭配指令</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#cut"><span class="nav-number">2.1.</span> <span class="nav-text">cut</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#grep"><span class="nav-number">2.2.</span> <span class="nav-text">grep</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Summary"><span class="nav-number">3.</span> <span class="nav-text">Summary</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#參考"><span class="nav-number">4.</span> <span class="nav-text">參考</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Tien-Yu Lin"
+      src="/images/tienyu.jpg">
+  <p class="site-author-name" itemprop="name">Tien-Yu Lin</p>
+  <div class="site-description" itemprop="description">Try not to become a man of success, but rather try to become a man of value. - Albert Einstein</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">44</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">28</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/tienyulin" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;tienyulin" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://hub.docker.com/u/tienyu" title="DockerHub → https:&#x2F;&#x2F;hub.docker.com&#x2F;u&#x2F;tienyu" rel="noopener" target="_blank"><i class="fab fa-docker fa-fw"></i>DockerHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:tienyu.lin@outlook.com" title="E-Mail → mailto:tienyu.lin@outlook.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.linkedin.com/in/tony-lin-79733714b/" title="Linkedin → https:&#x2F;&#x2F;www.linkedin.com&#x2F;in&#x2F;tony-lin-79733714b&#x2F;" rel="noopener" target="_blank"><i class="fab fa-linkedin fa-fw"></i>Linkedin</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+      <!--google_adsense-->	      
+      	 
+        <div class="links-of-blogroll-title">	     
+          <i class="fa fa-google"></i> AdSense	       
+          <ins class="adsbygoogle"	      
+              style="display:block"	     
+              data-ad-client="ca-pub-8271558544185929"	
+              data-ad-slot="8611071932"	
+              data-ad-format="auto"	
+              data-full-width-responsive="true"></ins>	
+          <script>	
+            (adsbygoogle = window.adsbygoogle || []).push({});	
+          </script>	
+        </div>	
+      	
+      <!--/google_adsense-->
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Tien-Yu Lin</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a>
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="Total Visitors">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="Total Views">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+  <script>
+    (function(){
+      var canonicalURL, curProtocol;
+      //Get the <link> tag
+      var x=document.getElementsByTagName("link");
+		//Find the last canonical URL
+		if(x.length > 0){
+			for (i=0;i<x.length;i++){
+				if(x[i].rel.toLowerCase() == 'canonical' && x[i].href){
+					canonicalURL=x[i].href;
+				}
+			}
+		}
+    //Get protocol
+	    if (!canonicalURL){
+	    	curProtocol = window.location.protocol.split(':')[0];
+	    }
+	    else{
+	    	curProtocol = canonicalURL.split(':')[0];
+	    }
+      //Get current URL if the canonical URL does not exist
+	    if (!canonicalURL) canonicalURL = window.location.href;
+	    //Assign script content. Replace current URL with the canonical URL
+      !function(){var e=/([http|https]:\/\/[a-zA-Z0-9\_\.]+\.baidu\.com)/gi,r=canonicalURL,t=document.referrer;if(!e.test(r)){var n=(String(curProtocol).toLowerCase() === 'https')?"https://sp0.baidu.com/9_Q4simg2RQJ8t7jm9iCKT-xh_/s.gif":"//api.share.baidu.com/s.gif";t?(n+="?r="+encodeURIComponent(document.referrer),r&&(n+="&l="+r)):r&&(n+="?l="+r);var i=new Image;i.src=n}}(window);})();
+  </script>
+
+
+
+
+  
+<script src="//cdn.jsdelivr.net/npm/algoliasearch@4/dist/algoliasearch-lite.umd.js"></script>
+<script src="//cdn.jsdelivr.net/npm/instantsearch.js@4/dist/instantsearch.production.min.js"></script>
+<script src="/js/algolia-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://tienyulin.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  var disqus_config = function() {
+    this.page.url = "https://tienyulin.github.io/linux-pipe/";
+    this.page.identifier = "linux-pipe/";
+    this.page.title = "Linux (七) - 管線命令 (pipe)";
+    };
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: disqus_config
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://tienyulin.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>
