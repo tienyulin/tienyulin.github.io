@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="/lib/pace/pace-theme-bounce.min.css">
+  <script src="/lib/pace/pace.min.js"></script>
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"tienyulin.github.io","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"appID":"CKNGBQCM6Q","apiKey":"aa8f782cff7f67f246a3fd15f8592fc1","indexName":"tienyulin.github.com","hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="OCI 是 Linux Foundation 所提出的計畫，主要是希望能夠針對 Linux Container (容器) 制定一個基於作業系統層級的虛擬化開放標準。 Docker 一直以來便是 Linux Container 框架的標準，所以 OCI 也是基於 Docker 去做設計和制訂的。因此這套標準和 Docker 非常相似，也使得 Docker 可以和其他基於 OCI 的容器框架可以兼容">
+<meta property="og:type" content="article">
+<meta property="og:title" content="OCI (Open Container Initiative)">
+<meta property="og:url" content="https://tienyulin.github.io/open-container-initiative-oci/">
+<meta property="og:site_name" content="Tienyu Note">
+<meta property="og:description" content="OCI 是 Linux Foundation 所提出的計畫，主要是希望能夠針對 Linux Container (容器) 制定一個基於作業系統層級的虛擬化開放標準。 Docker 一直以來便是 Linux Container 框架的標準，所以 OCI 也是基於 Docker 去做設計和制訂的。因此這套標準和 Docker 非常相似，也使得 Docker 可以和其他基於 OCI 的容器框架可以兼容">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://opencontainers.org/img/logos/OCI-logo.svg">
+<meta property="og:image" content="https://i.imgur.com/oazpX91.png">
+<meta property="og:image" content="https://i.imgur.com/WFVC1jz.png">
+<meta property="article:published_time" content="2020-06-21T00:00:00.000Z">
+<meta property="article:modified_time" content="2020-06-21T00:00:00.000Z">
+<meta property="article:author" content="Tien-Yu Lin">
+<meta property="article:tag" content="Container">
+<meta property="article:tag" content="Docker">
+<meta property="article:tag" content="OCI">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://opencontainers.org/img/logos/OCI-logo.svg">
+
+<link rel="canonical" href="https://tienyulin.github.io/open-container-initiative-oci/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>OCI (Open Container Initiative) | Tienyu Note</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-169323232-1"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'UA-169323232-1');
+      }
+    </script>
+
+
+
+
+
+
+
+<script data-ad-client="ca-pub-8271558544185929" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Tienyu Note</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">Fly with me</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives<span class="badge">45</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-folder-open fa-fw"></i>Categories<span class="badge">28</span></a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags<span class="badge">29</span></a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-sitemap">
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-sitemap fa-fw"></i>Sitemap</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container"></div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="algolia-results">
+  <div id="algolia-stats"></div>
+  <div id="algolia-hits"></div>
+  <div id="algolia-pagination" class="algolia-pagination"></div>
+</div>
+
+      
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/tienyulin" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="https://tienyulin.github.io/open-container-initiative-oci/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/tienyu.jpg">
+      <meta itemprop="name" content="Tien-Yu Lin">
+      <meta itemprop="description" content="Try not to become a man of success, but rather try to become a man of value. - Albert Einstein">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Tienyu Note">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          OCI (Open Container Initiative)
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2020-06-21 00:00:00" itemprop="dateCreated datePublished" datetime="2020-06-21T00:00:00+00:00">2020-06-21</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Container/" itemprop="url" rel="index"><span itemprop="name">Container</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="Views" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">Views: </span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus: </span>
+    
+    <a title="disqus" href="/open-container-initiative-oci/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="open-container-initiative-oci/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p><img src="https://opencontainers.org/img/logos/OCI-logo.svg" alt="OCI"></p>
+<p><code>OCI</code> 是 Linux Foundation 所提出的計畫，主要是希望能夠針對 Linux Container (容器) 制定一個基於作業系統層級的虛擬化開放標準。</p>
+<p>Docker 一直以來便是 Linux Container 框架的標準，所以 <code>OCI</code> 也是基於 Docker 去做設計和制訂的。因此這套標準和 Docker 非常相似，也使得 Docker 可以和其他基於 <code>OCI</code> 的容器框架可以兼容。</p>
+<p>目前 <code>OCI</code> 也已經制定出了兩個標準: Runtime Specification 和 Image Specification。</p>
+<a id="more"></a>
+<h2 id="Runtime-Spec"><a class="header-anchor" href="#Runtime-Spec"></a>Runtime Spec</h2>
+<p>Runtime Spec 主要是在規範如何控制 Container。</p>
+<p>標準的 Container 是把應用程式和其所依賴的所有套件、檔案或設定一起封裝成可以獨立運作及移動到其他環境的格式。而封裝起來的檔案可以在任何一個符合此種格式檔案執行的環境下執行且不需要依賴額外的套件或檔案，也不在乎執行此檔案的機器和檔案內容。</p>
+<p>上述對 Container 的標準定義可以用貨輪載運貨物來做比喻。每一個貨櫃都會裝載著不同的貨物，這些貨櫃可以被抬起、堆疊、鎖定、裝載、卸載和標記。不論貨櫃的內容物是什麼也不管貨輪是哪一艘，只要統一了貨櫃的格式，就可以定義一組更精簡、更有效的運作流程。</p>
+<h3 id="Container-的五大原則"><a class="header-anchor" href="#Container-的五大原則"></a>Container 的五大原則</h3>
+<h4 id="1-擁有標準運作流程"><a class="header-anchor" href="#1-擁有標準運作流程"></a>1. 擁有標準運作流程</h4>
+<p>標準的 Container 要制定一組運作的流程，Container 可以被建立、啟動、停止；也可以被複製、備份；還要可以被下載、上傳。</p>
+<h4 id="2-不論內容是什麼都可以使用"><a class="header-anchor" href="#2-不論內容是什麼都可以使用"></a>2. 不論內容是什麼都可以使用</h4>
+<p>Container 的內容不論是什麼，對於標準運作流程來說，執行的方式都是一樣的。</p>
+<h4 id="3-不論機器的基礎架構是什麼都可以運作"><a class="header-anchor" href="#3-不論機器的基礎架構是什麼都可以運作"></a>3. 不論機器的基礎架構是什麼都可以運作</h4>
+<p>不論是伺服器、桌上型電腦、筆記型電腦等，只要機器上有支援 OCI 就可以運作。</p>
+<h4 id="4-為了自動化而設計"><a class="header-anchor" href="#4-為了自動化而設計"></a>4. 為了自動化而設計</h4>
+<p>因為有標準的運作流程，也不管內容和基礎架構是什麼，所以非常適合以自動化的方式來運作。</p>
+<h4 id="5-工業級別的交付"><a class="header-anchor" href="#5-工業級別的交付"></a>5. 工業級別的交付</h4>
+<p>藉由上述所提到的優點，標準的 Container 可以讓開發者們簡化流程並且自動化的交付開發完成的應用程式。</p>
+<h3 id="Container-的三大規範"><a class="header-anchor" href="#Container-的三大規範"></a>Container 的三大規範</h3>
+<p>在 Spec 裡對 Container 主要有三大規範 :</p>
+<ul>
+<li>FileSystem Bundle (檔案系統資料夾)</li>
+<li>Configuration (設定檔)</li>
+<li>Runtime and Lifecycle (運行時的生命週期)</li>
+</ul>
+<h3 id="FileSystem-Bundle"><a class="header-anchor" href="#FileSystem-Bundle"></a>FileSystem Bundle</h3>
+<p>FileSystem Bundle 是檔案系統的資料夾，也就是把執行時所需要的檔案和設定全部放進一個資料夾，執行時就可以依據這個資料夾來啟動 Container。</p>
+<h3 id="Configuration"><a class="header-anchor" href="#Configuration"></a>Configuration</h3>
+<p>設定檔會根據不同的作業系統有不同的規範，而檔案內會明確的表示出建立 Container 所需要的所有參數，包含環境變數、執行的流程和<a href="https://zh.wikipedia.org/wiki/%E6%B2%99%E7%9B%92_(%E9%9B%BB%E8%85%A6%E5%AE%89%E5%85%A8)" target="_blank" rel="noopener">沙盒</a>的功能設定。</p>
+<p>Container 運行時的環境必須依照設定檔來建立，若無法依照設定檔來建立則應該為建立失敗。此規範主要是確保 Container 的運行能有一致的環境。</p>
+<h3 id="Runtime-and-Lifecycle"><a class="header-anchor" href="#Runtime-and-Lifecycle"></a>Runtime and Lifecycle</h3>
+<p>Container 運行最重要的就是要知道 Container 的狀態、操作方式及生命週期。因此此規範也制定了查詢容器狀態時需回傳的訊息、如何操作 Container 和 Container 從啟動到關閉的整個過程。</p>
+<h2 id="Image-Spec"><a class="header-anchor" href="#Image-Spec"></a>Image Spec</h2>
+<p>Image Spec 主要是在規範如何建立 Image。</p>
+<p>下圖說明了 Image 的組成。<br>
+<img src="https://i.imgur.com/oazpX91.png" alt="Image Spec"></p>
+<p>當應用程式要包裝成 Image 時，需要具備以下規範:</p>
+<ul>
+<li>
+<p><strong>Image Layer Filesystem Changeset</strong><br>
+此規範定義了如何序列化以及新增、刪除、修改文件系統成為一個 <a href="https://zh.wikipedia.org/wiki/%E4%BA%8C%E9%80%B2%E4%BD%8D%E5%A4%A7%E5%9E%8B%E7%89%A9%E4%BB%B6" target="_blank" rel="noopener">Blob</a>，而這個 Blob 稱之為 Layer。<br>
+Image 透過以層層堆疊的方式建構出來，成為完整的一個文件系統。每一層就是一個 Layer，Layer 會儲存該次建構所需要的文件以及與上一層之間產生的變化。</p>
+</li>
+<li>
+<p><strong>Image Configuration</strong><br>
+定義文件系統所需的一些資訊，例如 : 參數、環境變數和工作目錄等等。也紀錄了每個 Layer 的順序及轉換成 Runtime Filesystem Bundle 的配置資訊。</p>
+</li>
+<li>
+<p><strong>Image Manifest</strong><br>
+Image Manifest 包含了這個 Image 的組成，像是有哪些 Layer 和 Config。而一個 Manifest 文件的內容只會對應到一個平台(架構或是作業系統)。</p>
+</li>
+<li>
+<p><strong>Image Index</strong><br>
+Image Index 包含了一個列表，列表中因應不同的平台會對應到不同的 Image Manifest 文件，並使用 Index 作為取得 Image Manifest 的索引。 Image Index 可以確保 Image 可以跨平台使用。<br>
+所以，當使用者在下載 Image 時，會根據不同的平台先在 Image Index 文件中找到對應的 Index，再利用這個 Index 找到對應的 Image Manifest。</p>
+</li>
+<li>
+<p><strong>Image Layout</strong><br>
+Image Layout 是一個目錄結構，代表了這個 Image 的內容。其中包含了 <a href="https://github.com/opencontainers/image-spec/blob/master/image-layout.md#blobs" target="_blank" rel="noopener">Blobs 資料夾</a>、OCI-Layout 和 Image Index。 Blobs 資料夾中儲存了許多的 Blob，每個 Blob 即為真正的實體文件，例如 : Manifest、Config、Layer。而 OCI-Layout 則只有儲存 Layout 的版本。</p>
+</li>
+<li>
+<p><strong>Conversion</strong><br>
+描述如何將 Image 轉換成 Runtime 的 Filesystem Bundle。</p>
+</li>
+<li>
+<p><strong>Descriptor</strong><br>
+描述一個目標內容的位置。Descriptor 包含內容的類型、ID (digest)、大小，所以當取得了 Image Manifest 後，就可以從 Manifest 裡記錄的每個 Content Descriptor 找出 ID，再利用 ID 逐一的去下載對應的 Blob。<br>
+Descriptor 的 ID 採用 <a href="https://zh.wikipedia.org/wiki/SHA%E5%AE%B6%E6%97%8F" target="_blank" rel="noopener">Secure Hash Algorithm</a> 來進行編碼，因此在搜尋 Blob 時是使用<a href="https://lorbook.com/block-cheese/18287/" target="_blank" rel="noopener">內容尋址</a>而不是位置尋址，以提升安全性。</p>
+</li>
+</ul>
+<p>看完了上面介紹的這些規範，你可能還是不太清楚他們之間的關係，下圖簡單的整理出了 Image Layout 的關聯。</p>
+<p><img src="https://i.imgur.com/WFVC1jz.png" alt="Image Layout"></p>
+<p>可以看到 manifest、config、layer 都被序列化成為 Blob，每個 Blob 有一個經過 SHA 編碼的 ID 並且同時存放在 Blobs 資料夾裡。當需要用到此文件時再去 Blobs 資料夾裡面搜尋 Blob 的 ID。<br>
+這張圖也大致詮釋了 Image Spec 所要制定的規範。</p>
+<h2 id="Summary"><a class="header-anchor" href="#Summary"></a>Summary</h2>
+<p>OCI 定義了兩大標準來規範 Container，透過規範可以讓符合 OCI 標準的容器框架都可以兼容。</p>
+<p>本篇介紹了兩個標準的基本概念，詳細的內容會在下一篇來做介紹。</p>
+<h2 id="參考"><a class="header-anchor" href="#參考"></a>參考</h2>
+<p>[1]<a href="https://ithelp.ithome.com.tw/articles/10220754" target="_blank" rel="noopener">取代docker的容器技術: Podman 、Buildah 、Skopeo、Kata container</a><br>
+[2]<a href="https://juejin.im/post/5d8b27f8e51d4577e86d0d4b?utm_source=gold_browser_extension" target="_blank" rel="noopener">再見 Docker，是時候擁抱下一代容器工具了</a><br>
+[3]<a href="https://insujang.github.io/2019-10-10/open-container-initiative-image-spec/" target="_blank" rel="noopener">Open Container Initiative (OCI) Standard, Image Spec</a><br>
+[4]<a href="https://www.hwchiu.com/container-design-i.html" target="_blank" rel="noopener">淺談 Container 實現原理, 以 Docker 為例(I)</a><br>
+[5]<a href="https://github.com/opencontainers/runtime-spec/blob/master/principles.md" target="_blank" rel="noopener">The 5 principles of Standard Containers</a><br>
+[6]<a href="https://segmentfault.com/a/1190000009583199" target="_blank" rel="noopener">走進docker(04)：什么是容器的runtime?</a><br>
+[7]<a href="https://www.ithome.com.tw/news/122908" target="_blank" rel="noopener">Google開源沙盒容器Runtime gVisor，與VM一樣安全但更輕巧</a><br>
+[8]<a href="https://www.itread01.com/content/1546084756.html" target="_blank" rel="noopener">docker OCI runtime</a><br>
+[9]<a href="https://www.jianshu.com/p/712273fd1cfd" target="_blank" rel="noopener">OCI Image Spec 鏡像格式規範</a><br>
+[10]<a href="https://blog.k8s.li/Exploring-container-image.html" target="_blank" rel="noopener">深入淺出容器鏡像的一生</a></p>
+
+    </div>
+
+    
+    
+    
+      
+  <div class="popular-posts-header">系列文章</div>
+  <ul class="popular-posts">
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/docker-1_concept/" rel="bookmark">Docker (一) - 容器與Docker的基本概念</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/docker-compose/" rel="bookmark">Docker Compose</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/kubernetes-1_concept/" rel="bookmark">Kubernetes (一) - 基本概念</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/kubernetes-2_install/" rel="bookmark">Kubernetes (二) - 安裝和啟動 Kubernetes</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/kubernetes-3_pod/" rel="bookmark">Kubernetes (三) - 實戰 Pod 建立</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/docker-2_command/" rel="bookmark">Docker (二) - Docker的基本操作</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/kubernetes-5_horizontal-pod-autoscaler-hpa/" rel="bookmark">Kubernetes (五) - 實現 Pod 的 AutoScaling</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/docker-3_dockerfile/" rel="bookmark">Docker (三) - 撰寫 Dockerfile</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/kubernetes-4_service-deployment-ingress/" rel="bookmark">Kubernetes (四) - Pod 進階應用 Service、Deployment、Ingress</a></div>
+    </li>
+  </ul>
+
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/tags/Container/" rel="tag"><i class="fa fa-tag"></i> Container</a>
+              <a href="/tags/Docker/" rel="tag"><i class="fa fa-tag"></i> Docker</a>
+              <a href="/tags/OCI/" rel="tag"><i class="fa fa-tag"></i> OCI</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/microservices/" rel="prev" title="微服務 (Microservices)">
+      <i class="fa fa-chevron-left"></i> 微服務 (Microservices)
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/asp-net-core-middleware/" rel="next" title="ASP.NET Core - Middleware">
+      ASP.NET Core - Middleware <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<!-- tienyulin.github -->
+<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-8271558544185929"
+     data-ad-slot="8611071932"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Runtime-Spec"><span class="nav-number">1.</span> <span class="nav-text">Runtime Spec</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Container-的五大原則"><span class="nav-number">1.1.</span> <span class="nav-text">Container 的五大原則</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-擁有標準運作流程"><span class="nav-number">1.1.1.</span> <span class="nav-text">1. 擁有標準運作流程</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-不論內容是什麼都可以使用"><span class="nav-number">1.1.2.</span> <span class="nav-text">2. 不論內容是什麼都可以使用</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-不論機器的基礎架構是什麼都可以運作"><span class="nav-number">1.1.3.</span> <span class="nav-text">3. 不論機器的基礎架構是什麼都可以運作</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-為了自動化而設計"><span class="nav-number">1.1.4.</span> <span class="nav-text">4. 為了自動化而設計</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#5-工業級別的交付"><span class="nav-number">1.1.5.</span> <span class="nav-text">5. 工業級別的交付</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Container-的三大規範"><span class="nav-number">1.2.</span> <span class="nav-text">Container 的三大規範</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#FileSystem-Bundle"><span class="nav-number">1.3.</span> <span class="nav-text">FileSystem Bundle</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Configuration"><span class="nav-number">1.4.</span> <span class="nav-text">Configuration</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Runtime-and-Lifecycle"><span class="nav-number">1.5.</span> <span class="nav-text">Runtime and Lifecycle</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Image-Spec"><span class="nav-number">2.</span> <span class="nav-text">Image Spec</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Summary"><span class="nav-number">3.</span> <span class="nav-text">Summary</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#參考"><span class="nav-number">4.</span> <span class="nav-text">參考</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Tien-Yu Lin"
+      src="/images/tienyu.jpg">
+  <p class="site-author-name" itemprop="name">Tien-Yu Lin</p>
+  <div class="site-description" itemprop="description">Try not to become a man of success, but rather try to become a man of value. - Albert Einstein</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">45</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">28</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">29</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/tienyulin" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;tienyulin" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://hub.docker.com/u/tienyu" title="DockerHub → https:&#x2F;&#x2F;hub.docker.com&#x2F;u&#x2F;tienyu" rel="noopener" target="_blank"><i class="fab fa-docker fa-fw"></i>DockerHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:t.tienyulin@gmail.com" title="E-Mail → mailto:t.tienyulin@gmail.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.linkedin.com/in/tony-lin-79733714b/" title="Linkedin → https:&#x2F;&#x2F;www.linkedin.com&#x2F;in&#x2F;tony-lin-79733714b&#x2F;" rel="noopener" target="_blank"><i class="fab fa-linkedin fa-fw"></i>Linkedin</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+      <!--google_adsense-->	      
+      	 
+        <div class="links-of-blogroll-title">	     
+          <i class="fa fa-google"></i> AdSense	       
+          <ins class="adsbygoogle"	      
+              style="display:block"	     
+              data-ad-client="ca-pub-8271558544185929"	
+              data-ad-slot="8611071932"	
+              data-ad-format="auto"	
+              data-full-width-responsive="true"></ins>	
+          <script>	
+            (adsbygoogle = window.adsbygoogle || []).push({});	
+          </script>	
+        </div>	
+      	
+      <!--/google_adsense-->
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Tien-Yu Lin</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a>
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="Total Visitors">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="Total Views">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+  <script>
+    (function(){
+      var canonicalURL, curProtocol;
+      //Get the <link> tag
+      var x=document.getElementsByTagName("link");
+		//Find the last canonical URL
+		if(x.length > 0){
+			for (i=0;i<x.length;i++){
+				if(x[i].rel.toLowerCase() == 'canonical' && x[i].href){
+					canonicalURL=x[i].href;
+				}
+			}
+		}
+    //Get protocol
+	    if (!canonicalURL){
+	    	curProtocol = window.location.protocol.split(':')[0];
+	    }
+	    else{
+	    	curProtocol = canonicalURL.split(':')[0];
+	    }
+      //Get current URL if the canonical URL does not exist
+	    if (!canonicalURL) canonicalURL = window.location.href;
+	    //Assign script content. Replace current URL with the canonical URL
+      !function(){var e=/([http|https]:\/\/[a-zA-Z0-9\_\.]+\.baidu\.com)/gi,r=canonicalURL,t=document.referrer;if(!e.test(r)){var n=(String(curProtocol).toLowerCase() === 'https')?"https://sp0.baidu.com/9_Q4simg2RQJ8t7jm9iCKT-xh_/s.gif":"//api.share.baidu.com/s.gif";t?(n+="?r="+encodeURIComponent(document.referrer),r&&(n+="&l="+r)):r&&(n+="?l="+r);var i=new Image;i.src=n}}(window);})();
+  </script>
+
+
+
+
+  
+<script src="//cdn.jsdelivr.net/npm/algoliasearch@4/dist/algoliasearch-lite.umd.js"></script>
+<script src="//cdn.jsdelivr.net/npm/instantsearch.js@4/dist/instantsearch.production.min.js"></script>
+<script src="/js/algolia-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://tienyulin.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  var disqus_config = function() {
+    this.page.url = "https://tienyulin.github.io/open-container-initiative-oci/";
+    this.page.identifier = "open-container-initiative-oci/";
+    this.page.title = "OCI (Open Container Initiative)";
+    };
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: disqus_config
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://tienyulin.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>

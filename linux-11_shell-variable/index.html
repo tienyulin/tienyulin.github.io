@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="/lib/pace/pace-theme-bounce.min.css">
+  <script src="/lib/pace/pace.min.js"></script>
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"tienyulin.github.io","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"appID":"CKNGBQCM6Q","apiKey":"aa8f782cff7f67f246a3fd15f8592fc1","indexName":"tienyulin.github.com","hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="上一篇我們介紹了 Shell 的基本概念，了解了什麼是 Shell 之後，接下來就要來了解什麼是變數。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Linux (十一) - Shell 的變數設定">
+<meta property="og:url" content="https://tienyulin.github.io/linux-11_shell-variable/">
+<meta property="og:site_name" content="Tienyu Note">
+<meta property="og:description" content="上一篇我們介紹了 Shell 的基本概念，了解了什麼是 Shell 之後，接下來就要來了解什麼是變數。">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2021-01-12T00:00:00.000Z">
+<meta property="article:modified_time" content="2021-01-12T00:00:00.000Z">
+<meta property="article:author" content="Tien-Yu Lin">
+<meta property="article:tag" content="Linux">
+<meta property="article:tag" content="Shell">
+<meta property="article:tag" content="Bash">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://tienyulin.github.io/linux-11_shell-variable/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>Linux (十一) - Shell 的變數設定 | Tienyu Note</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-169323232-1"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'UA-169323232-1');
+      }
+    </script>
+
+
+
+
+
+
+
+<script data-ad-client="ca-pub-8271558544185929" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Tienyu Note</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">Fly with me</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives<span class="badge">45</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-folder-open fa-fw"></i>Categories<span class="badge">28</span></a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags<span class="badge">29</span></a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-sitemap">
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-sitemap fa-fw"></i>Sitemap</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container"></div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="algolia-results">
+  <div id="algolia-stats"></div>
+  <div id="algolia-hits"></div>
+  <div id="algolia-pagination" class="algolia-pagination"></div>
+</div>
+
+      
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/tienyulin" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="https://tienyulin.github.io/linux-11_shell-variable/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/tienyu.jpg">
+      <meta itemprop="name" content="Tien-Yu Lin">
+      <meta itemprop="description" content="Try not to become a man of success, but rather try to become a man of value. - Albert Einstein">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Tienyu Note">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Linux (十一) - Shell 的變數設定
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2021-01-12 00:00:00" itemprop="dateCreated datePublished" datetime="2021-01-12T00:00:00+00:00">2021-01-12</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Linux/" itemprop="url" rel="index"><span itemprop="name">Linux</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Linux/Shell/" itemprop="url" rel="index"><span itemprop="name">Shell</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Linux/Shell/Bash/" itemprop="url" rel="index"><span itemprop="name">Bash</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="Views" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">Views: </span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus: </span>
+    
+    <a title="disqus" href="/linux-11_shell-variable/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="linux-11_shell-variable/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>上一篇我們介紹了 Shell 的基本概念，了解了什麼是 Shell 之後，接下來就要來了解什麼是變數。</p>
+<a id="more"></a>
+<p>變數是 Bash 中非常重要的一個設計，而概念和程式語言所宣告的變數類似。例如 : 不同的使用者會對應到不同的設定，系統只要在使用者登入時去取得對應的值放到變數裡，當要用到時可以直接從變數取值，就不用把值寫死在程式碼裡面。</p>
+<h2 id="取得變數內容-echo"><a class="header-anchor" href="#取得變數內容-echo"></a>取得變數內容 (echo)</h2>
+<p>要取得變數的內容可以使用 <code>echo</code> 指令來達成，在取得變數內容前要在變數前面加上 <code>$</code> 的符號才可以。變數名稱也可以放在 <code>{}</code> 中。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> $&lt;variable name&gt;</span><br><span class="line"><span class="built_in">echo</span> <span class="variable">$&#123;&lt;variable name&gt;&#125;</span></span><br></pre></td></tr></table></figure>
+<p><strong>範例</strong><br>
+下面以 <code>PATH</code> 這個環境變數來作為範例，可以看到不論是有沒有加 <code>{}</code> 輸出的結果都是一樣的。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">echo</span> <span class="variable">$PATH</span></span><br><span class="line">/usr/<span class="built_in">local</span>/bin:/usr/bin:/usr/<span class="built_in">local</span>/sbin:/usr/sbin:/home/opc/.<span class="built_in">local</span>/bin:/home/opc/bin</span><br><span class="line"></span><br><span class="line">$ <span class="built_in">echo</span> <span class="variable">$&#123;PATH&#125;</span></span><br><span class="line">/usr/<span class="built_in">local</span>/bin:/usr/bin:/usr/<span class="built_in">local</span>/sbin:/usr/sbin:/home/opc/.<span class="built_in">local</span>/bin:/home/opc/bin</span><br></pre></td></tr></table></figure>
+<h2 id="設定變數內容"><a class="header-anchor" href="#設定變數內容"></a>設定變數內容</h2>
+<p>變數的內容設定非常直覺就是用等號 <code>=</code> 就可以了，但是內容上有一些規則限制。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;variable name&gt;=&lt;data&gt;</span><br></pre></td></tr></table></figure>
+<p><strong>範例</strong><br>
+tmp 這個變數還沒設定過所以直接用 <code>echo</code> 顯示出來是沒有值的，接著再設定 tmp 的值之後就可以順利用 <code>echo</code> 指令取到值。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">echo</span> <span class="variable">$tmp</span></span><br><span class="line"></span><br><span class="line">$ tmp=TestData</span><br><span class="line">$ <span class="built_in">echo</span> <span class="variable">$tmp</span></span><br><span class="line">TestData</span><br></pre></td></tr></table></figure>
+<h3 id="變數設定規則"><a class="header-anchor" href="#變數設定規則"></a>變數設定規則</h3>
+<ul>
+<li>等號兩邊不能接空白，例如 :</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">tmp = Test ❌</span><br><span class="line">tmp=Test Data ❌</span><br></pre></td></tr></table></figure>
+<ul>
+<li>變數名稱只能是英文和數字，且 <code>數字不能在開頭</code>，例如 :</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">1tt=tt1 ❌</span><br></pre></td></tr></table></figure>
+<ul>
+<li>變數內容有空白可以放在雙引號 <code>&quot;&quot;</code> 或是單引號 <code>''</code> 裡面。
+<ul>
+<li>雙引號中若有特殊的字元，例如 <code>$</code>，會保有原本的特性。</li>
+</ul>
+  <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ name=simon</span><br><span class="line">$ s1=<span class="string">"This is <span class="variable">$name</span>"</span></span><br><span class="line">$ <span class="built_in">echo</span> <span class="variable">$s1</span></span><br><span class="line">This is simon</span><br></pre></td></tr></table></figure>
+<ul>
+<li>單引號中所有的字元即為一般字元，沒有任何功能。</li>
+</ul>
+  <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ s2=<span class="string">'This is $name'</span></span><br><span class="line">$ <span class="built_in">echo</span> <span class="variable">$s2</span></span><br><span class="line">This is <span class="variable">$name</span></span><br></pre></td></tr></table></figure>
+</li>
+<li>使用反斜線 <code>\</code> 可以跳脫其後接的第一個字元本身的功能，這可以用來跳脫一些特殊字元，例如 : <code>$</code>、<code>Enter</code>、<code>空白</code> 等等，讓這些字元變成單純的字元沒有功能。在上一篇我們也有介紹過用反斜線來跳脫 <code>Enter</code> 可以讓很長的指令變成多行以利閱讀。</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">$ name=simon\ <span class="built_in">test</span></span><br><span class="line">$ <span class="built_in">echo</span> <span class="variable">$name</span></span><br><span class="line">simon <span class="built_in">test</span></span><br><span class="line"></span><br><span class="line">$ <span class="built_in">echo</span> It costs <span class="variable">$65</span></span><br><span class="line">It costs 5</span><br><span class="line">$ <span class="built_in">echo</span> It costs \<span class="variable">$65</span></span><br><span class="line">It costs <span class="variable">$65</span></span><br></pre></td></tr></table></figure>
+<ul>
+<li>在指令中如果還要從其他指令取得內容，可以使用 $(command) 或是 `command` 取得其他指令的值。</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">$ username=$(whoami)</span><br><span class="line">$ <span class="built_in">echo</span> <span class="variable">$username</span></span><br><span class="line">simon</span><br><span class="line"></span><br><span class="line">$ <span class="built_in">echo</span> $(whoami)</span><br><span class="line">simon</span><br><span class="line"></span><br><span class="line">$ username=`id simon`</span><br><span class="line">$ <span class="built_in">echo</span> <span class="variable">$username</span></span><br><span class="line">uid=0(simon) gid=0(simon) groups=0(simon)</span><br></pre></td></tr></table></figure>
+<ul>
+<li>擴增變數內容可以直接取現有的值再接上想要擴增的內容。</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">echo</span> <span class="variable">$name</span></span><br><span class="line">simon <span class="built_in">test</span></span><br><span class="line"></span><br><span class="line">$ name=<span class="variable">$name</span>\ tina</span><br><span class="line">$ <span class="built_in">echo</span> <span class="variable">$name</span></span><br><span class="line">simon <span class="built_in">test</span> tina</span><br></pre></td></tr></table></figure>
+<ul>
+<li>要取消變數的設定可以使用 <code>unset</code> 指令來解除變數。</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">unset</span> name</span><br><span class="line">$ <span class="built_in">echo</span> <span class="variable">$name</span></span><br></pre></td></tr></table></figure>
+<h2 id="環境變數"><a class="header-anchor" href="#環境變數"></a>環境變數</h2>
+<p>環境變數包含了使用者登入後的一些資訊，大多都是系統的設定，例如 : 系統語言、執行檔的路徑、家目錄路徑等等。和一般變數一樣這些環境變數都可以設定，但是不太會經常去改動環境變數的內容。</p>
+<h3 id="程序-Process"><a class="header-anchor" href="#程序-Process"></a>程序 (Process)</h3>
+<p>環境變數的用途是讓父程序下的所有子程序都可以使用這個變數。所謂的程序 (Process) 是指運作起來的程式 (Program)，所以在一個運作中的程式裡面再啟動一個程式讓他運作，這就是父程序和子程序的概念。</p>
+<p>舉例來說，Bash 的執行檔是在 <code>/bin/bash</code>，而這個執行檔是一個 <code>binary file</code>，也就是一個程式。所以當我們透過 <code>/bin/bash</code> 登入時，就是啟動了 <code>/bin/bash</code> 這個程式讓他變成 <code>程序</code>。接著我們在 Bash 中執行 <code>cd</code> 指令來切換當前的路徑，而 <code>cd</code> 也是一個 <code>binary file</code> 的執行檔，路徑是 <code>/bin/cd</code>，所以下了 <code>cd</code> 就等於是啟動了 <code>/bin/cd</code> 這個程式，也就會產生出一個 <code>cd</code> 的 <code>程序</code>。這時候父程序就是 <code>bash 程序</code>，而子程序就是 <code>cd 程序</code>。</p>
+<p><strong>範例</strong><br>
+下面這個範例我們在已經開啟的 bash 上再開一個 bash，此時再使用 <code>ps (process status)</code> 指令來看一下運行中的 process 狀態。</p>
+<p>可以看到第一個程序的 PID (程序的 ID) 是 17，而 CMD (觸發程序的指令) 是 bash；第二個程序的 PPID (程序的父程序 ID) 也是 17，而 CMD (觸發程序的指令) 是 bash。從這裡就可以看出來 <code>第二個程序是第一個程序的子程序</code>。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">$ bash</span><br><span class="line">$ ps -l</span><br><span class="line">F S   UID   PID  PPID  C PRI  NI ADDR SZ WCHAN  TTY          TIME CMD</span><br><span class="line">4 S     0    17     0  0  80   0 -  2960 -      pts/1    00:00:00 bash</span><br><span class="line">4 S     0    35    17  0  80   0 -  2960 -      pts/1    00:00:00 bash</span><br><span class="line">0 R     0    62    35  0  80   0 - 12405 -      pts/1    00:00:00 ps</span><br></pre></td></tr></table></figure>
+<h3 id="列出環境變數-env"><a class="header-anchor" href="#列出環境變數-env"></a>列出環境變數 (env)</h3>
+<p>上面簡單介紹了環境變數的用途，現在要再回來看環境變數的一些操作和設定。首先可以先用 <code>env</code> 指令來列出所有的環境變數。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">$ env</span><br><span class="line">HOSTNAME=myserver</span><br><span class="line">TERM=xterm</span><br><span class="line">SHELL=/bin/bash</span><br><span class="line">HISTSIZE=1000</span><br><span class="line">USER=myuser</span><br><span class="line">LS_COLORS=rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:<span class="keyword">do</span>=01;35:bd=40;33;01:<span class="built_in">cd</span>=40;33;01:or=40;31;01:mi=01;05;37;41:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arc=01;31:*.arj=01;31:*.taz=01;31:*.lha=01;31:*.lz4=01;31:*.lzh=01;31:*.lzma=01;31:*.tlz=01;31:*.txz=01;31:*.tzo=01;31:*.t7z=01;31:*.zip=01;31:*.z=01;31:*.Z=01;31:*.dz=01;31:*.gz=01;31:*.lrz=01;31:*.lz=01;31:*.lzo=01;31:*.xz=01;31:*.bz2=01;31:*.bz=01;31:*.tbz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.war=01;31:*.ear=01;31:*.sar=01;31:*.rar=01;31:*.alz=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.cab=01;31:*.jpg=01;35:*.jpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.webm=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.cgm=01;35:*.emf=01;35:*.axv=01;35:*.anx=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=01;36:*.au=01;36:*.flac=01;36:*.mid=01;36:*.midi=01;36:*.mka=01;36:*.mp3=01;36:*.mpc=01;36:*.ogg=01;36:*.ra=01;36:*.wav=01;36:*.axa=01;36:*.oga=01;36:*.spx=01;36:*.xspf=01;36:</span><br><span class="line">MAIL=/var/spool/mail/myuser</span><br><span class="line">PATH=/usr/<span class="built_in">local</span>/bin:/usr/bin:/usr/<span class="built_in">local</span>/sbin:/usr/sbin:/home/myuser/.<span class="built_in">local</span>/bin:/home/myuser/bin</span><br><span class="line">PWD=/home/myuser</span><br><span class="line">LANG=en_US.UTF-8</span><br><span class="line">HOME=/home/myuser</span><br><span class="line">LOGNAME=myuser</span><br><span class="line">_=/usr/bin/env</span><br></pre></td></tr></table></figure>
+<ul>
+<li>HOSTNAME : 主機名稱。</li>
+<li>SHELL : 目前使用哪個 Shell。</li>
+<li>TERM : 終端機使用的環境類型，例如 : xterm、GNOME、Terminal、PuTTY。</li>
+<li>HITSIZE : 命令記錄的最大數量，上一篇有提到命令紀錄只會有一定的數量，就是從這裡設定的。</li>
+<li>USER : 使用者的名稱。</li>
+<li>LS_COLORS : Shell 顯示檔案、資料夾等等的顏色設定。</li>
+<li>MAIL : 如果使用 <code>mail</code> 指令收信，系統會去讀取信的檔案路徑。</li>
+<li>PATH : 執行檔的搜尋路徑，不同的路徑用 <code>:</code> 隔開。當下達了指令時就會 <code>依序</code> 到這些路徑看有沒有這個指令的執行檔。</li>
+<li>PWD : 目前使用者所在的工作目錄。</li>
+<li>LANG : 語系的設定。</li>
+<li>HOME : 目前使用者的家目錄路徑。</li>
+<li>LOGNAME : 登入者用來登入的帳號名稱。</li>
+<li>_ : 上一次使用的指令最後一個參數或是指令本身。</li>
+</ul>
+<p>可以看到上面列出的環境變數都是大寫，LINUX 預設會使用大寫字母來設定系統的變數。</p>
+<h2 id="自訂變數轉成環境變數-export"><a class="header-anchor" href="#自訂變數轉成環境變數-export"></a>自訂變數轉成環境變數 (export)</h2>
+<p>前面我們有介紹過了環境變數的用途就是用讓 <code>子程序可以使用到父程序所定義的變數</code>，但是這裡要特別注意 <code>子程序只能使用父程序設定的環境變數，而不是父程序所有自訂的變數</code>。因此父程序就可以透過 <code>export</code> 指令來將自訂的變數轉成環境變數讓子程序使用。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">export</span> &lt;variable name&gt;</span><br></pre></td></tr></table></figure>
+<p><strong>範例</strong><br>
+這個範例簡單示範了父程序先自訂了一個變數，接著使用 export 指令開放成環境變數。再打開一個 bash 作為子程序後，可以正確的讀取到父程序所開放的環境變數。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ test_env=12345 </span><br><span class="line">$ <span class="built_in">export</span> test_env</span><br><span class="line">$ bash           </span><br><span class="line">$ <span class="built_in">echo</span> <span class="variable">$test_env</span> </span><br><span class="line">12345</span><br></pre></td></tr></table></figure>
+<p>如果想查看開放了哪些環境變數可以直接使用 <code>export</code> 指令不加變數名稱即可，如下 :</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">export</span></span><br><span class="line"><span class="built_in">declare</span> -x HOME=<span class="string">"/myuser"</span></span><br><span class="line"><span class="built_in">declare</span> -x HOSTNAME=<span class="string">"myserver"</span></span><br><span class="line">...</span><br><span class="line"><span class="built_in">declare</span> -x OLDPWD</span><br><span class="line"><span class="built_in">declare</span> -x PATH=<span class="string">"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"</span></span><br><span class="line"><span class="built_in">declare</span> -x PWD=<span class="string">"/"</span></span><br><span class="line"><span class="built_in">declare</span> -x SHLVL=<span class="string">"1"</span></span><br><span class="line"><span class="built_in">declare</span> -x TERM=<span class="string">"xterm"</span></span><br><span class="line"><span class="built_in">declare</span> -x test_env=<span class="string">"12345"</span></span><br></pre></td></tr></table></figure>
+<h2 id="列出所有的變數-set"><a class="header-anchor" href="#列出所有的變數-set"></a>列出所有的變數 (set)</h2>
+<p>如果想要查看所有的變數，包含自訂變數和環境變數，可以使用 <code>set</code> 指令來查看。除了自訂變數和環境變數，bash 本身也會有一些變數，而 <code>set</code> 指令也會將 <code>bash</code> 的變數一同列出來。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">set</span></span><br><span class="line">BASH=/bin/bash</span><br><span class="line">BASHOPTS=checkwinsize:cmdhist:expand_aliases:extquote:force_fignore:histappend:hostcomplete:interactive_comments:progcomp:promptvars:sourcepath</span><br><span class="line">BASH_ALIASES=()</span><br><span class="line">BASH_ARGC=()</span><br><span class="line">BASH_ARGV=()</span><br><span class="line">BASH_CMDS=()</span><br><span class="line">BASH_LINENO=()</span><br><span class="line">BASH_SOURCE=()</span><br><span class="line">BASH_VERSINFO=([0]=<span class="string">"4"</span> [1]=<span class="string">"2"</span> [2]=<span class="string">"46"</span> [3]=<span class="string">"2"</span> [4]=<span class="string">"release"</span> [5]=<span class="string">"x86_64-redhat-linux-gnu"</span>)</span><br><span class="line">BASH_VERSION=<span class="string">'4.2.46(2)-release'</span></span><br><span class="line">...</span><br><span class="line">HOME=/home/myuser</span><br><span class="line">HOSTNAME=myserver</span><br><span class="line">HOSTTYPE=x86_64</span><br><span class="line">...</span><br><span class="line">PPID=0</span><br><span class="line">PROMPT_COMMAND=<span class="string">'printf "\033]0;%s@%s:%s\007" "$&#123;USER&#125;" "$&#123;HOSTNAME%%.*&#125;" "$&#123;PWD/#$HOME/~&#125;"'</span></span><br><span class="line">PS1=<span class="string">'[\u@\h \W]\$ '</span></span><br><span class="line">PS2=<span class="string">'&gt; '</span></span><br><span class="line">PS4=<span class="string">'+ '</span></span><br><span class="line">PWD=/</span><br><span class="line">SHELL=/bin/bash</span><br><span class="line">SHELLOPTS=braceexpand:emacs:hashall:histexpand:<span class="built_in">history</span>:interactive-comments:monitor</span><br><span class="line">SHLVL=1</span><br><span class="line">TERM=xterm</span><br><span class="line">UID=0</span><br><span class="line">_=<span class="built_in">set</span></span><br><span class="line">colors=/root/.dircolors</span><br><span class="line">test_env=12345</span><br><span class="line">username=<span class="string">'uid=0(root) gid=0(root) groups=0(root)'</span></span><br></pre></td></tr></table></figure>
+<h2 id="語系變數-locale"><a class="header-anchor" href="#語系變數-locale"></a>語系變數 (locale)</h2>
+<p>語系的設定也是使用變數來記錄和設定的，可以透過 <code>locale</code> 指令來查看變數的設定。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">$ locale</span><br><span class="line">LANG=en_US.UTF-8 <span class="comment"># 主要語言</span></span><br><span class="line">LC_CTYPE=<span class="string">"en_US.UTF-8"</span></span><br><span class="line">LC_NUMERIC=<span class="string">"en_US.UTF-8"</span></span><br><span class="line">LC_TIME=<span class="string">"en_US.UTF-8"</span></span><br><span class="line">LC_COLLATE=<span class="string">"en_US.UTF-8"</span></span><br><span class="line">LC_MONETARY=<span class="string">"en_US.UTF-8"</span></span><br><span class="line">LC_MESSAGES=<span class="string">"en_US.UTF-8"</span></span><br><span class="line">LC_PAPER=<span class="string">"en_US.UTF-8"</span></span><br><span class="line">LC_NAME=<span class="string">"en_US.UTF-8"</span></span><br><span class="line">LC_ADDRESS=<span class="string">"en_US.UTF-8"</span></span><br><span class="line">LC_TELEPHONE=<span class="string">"en_US.UTF-8"</span></span><br><span class="line">LC_MEASUREMENT=<span class="string">"en_US.UTF-8"</span></span><br><span class="line">LC_IDENTIFICATION=<span class="string">"en_US.UTF-8"</span></span><br><span class="line">LC_ALL= <span class="comment"># 整體語系</span></span><br></pre></td></tr></table></figure>
+<p>這些語系的變數都可以依照自己的需求調整，不過其實只要有設定 <code>LANG</code> 或是 <code>LC_ALL</code>，則其他的變數就會被這兩個變數自動取代。</p>
+<p>設定前可以使用 <code>locale -a</code> 來查看支援哪些語系，下面列出了幾個中文的編碼，最常用的就是 <code>zh_TW.big5</code> 或是 <code>zh_TW.utf8</code>。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">$ locale -a</span><br><span class="line">...</span><br><span class="line">zh_TW</span><br><span class="line">zh_TW.big5 <span class="comment"># 大五碼中文編碼</span></span><br><span class="line">zh_TW.euctw</span><br><span class="line">zh_TW.utf8 <span class="comment"># 萬國瑪中文編碼</span></span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+<p>如果想要 <code>暫時</code> 修改語系的變數，可以直接像給變數一樣給值，並且搭配 <code>export</code> 轉成環境變數這樣才會生效。如下 :</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">$ locale</span><br><span class="line">LANG=en_US.utf8</span><br><span class="line">LC_CTYPE=<span class="string">"en_US.utf8"</span></span><br><span class="line">LC_NUMERIC=<span class="string">"en_US.utf8"</span></span><br><span class="line">LC_TIME=<span class="string">"en_US.utf8"</span></span><br><span class="line">LC_COLLATE=<span class="string">"en_US.utf8"</span></span><br><span class="line">LC_MONETARY=<span class="string">"en_US.utf8"</span></span><br><span class="line">LC_MESSAGES=<span class="string">"en_US.utf8"</span></span><br><span class="line">LC_PAPER=<span class="string">"en_US.utf8"</span></span><br><span class="line">LC_NAME=<span class="string">"en_US.utf8"</span></span><br><span class="line">LC_ADDRESS=<span class="string">"en_US.utf8"</span></span><br><span class="line">LC_TELEPHONE=<span class="string">"en_US.utf8"</span></span><br><span class="line">LC_MEASUREMENT=<span class="string">"en_US.utf8"</span></span><br><span class="line">LC_IDENTIFICATION=<span class="string">"en_US.utf8"</span></span><br><span class="line">LC_ALL=</span><br><span class="line"></span><br><span class="line">$ <span class="built_in">export</span> LANG=zh_TW.utf8</span><br><span class="line">$ locale</span><br><span class="line">LANG=zh_TW.utf8</span><br><span class="line">LC_CTYPE=<span class="string">"zh_TW.utf8"</span></span><br><span class="line">LC_NUMERIC=<span class="string">"zh_TW.utf8"</span></span><br><span class="line">LC_TIME=<span class="string">"zh_TW.utf8"</span></span><br><span class="line">LC_COLLATE=<span class="string">"zh_TW.utf8"</span></span><br><span class="line">LC_MONETARY=<span class="string">"zh_TW.utf8"</span></span><br><span class="line">LC_MESSAGES=<span class="string">"zh_TW.utf8"</span></span><br><span class="line">LC_PAPER=<span class="string">"zh_TW.utf8"</span></span><br><span class="line">LC_NAME=<span class="string">"zh_TW.utf8"</span></span><br><span class="line">LC_ADDRESS=<span class="string">"zh_TW.utf8"</span></span><br><span class="line">LC_TELEPHONE=<span class="string">"zh_TW.utf8"</span></span><br><span class="line">LC_MEASUREMENT=<span class="string">"zh_TW.utf8"</span></span><br><span class="line">LC_IDENTIFICATION=<span class="string">"zh_TW.utf8"</span></span><br><span class="line">LC_ALL=</span><br></pre></td></tr></table></figure>
+<p>如果是想要永久修改語系的變數，可以打開 <code>/etc/locale.conf</code> 這個檔案去修改，改完後重啟系統即可完成。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ cat `/etc/locale.conf`</span><br><span class="line">LANG=<span class="string">"en_US.utf-8"</span></span><br></pre></td></tr></table></figure>
+<h2 id="從鍵盤讀取變數內容"><a class="header-anchor" href="#從鍵盤讀取變數內容"></a>從鍵盤讀取變數內容</h2>
+<p>上述介紹的變數設定都是直接使用指令來設定的，不過也可以讓使用者來輸入內容再存到變數裡面。例如登入會等待使用者輸入帳號、密碼，或是安裝程式會等待使用者輸入 yes/no 等等。</p>
+<h3 id="read"><a class="header-anchor" href="#read"></a>read</h3>
+<p>read 指令可以用來讀取鍵盤輸入的內容並存到變數裡，而這個指令經常被用在 Shell Script。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">read</span> &lt;option&gt; &lt;variable name&gt;</span><br></pre></td></tr></table></figure>
+<p>option :</p>
+<ul>
+<li>-a : array, 變數為陣列格式，輸入的內容以空白隔開依序存入陣列中，陣列索引從 0 開始。</li>
+<li>-p : prompt, 跳出提示字串。</li>
+<li>-t : timeout, 設定秒數內沒有完成則結束。</li>
+</ul>
+<p>variable name : 變數的名稱，鍵盤輸入的內容會寫進此變數。</p>
+<p><strong>範例</strong><br>
+下面的範例分別以不加任何選項參數、變數設為陣列、設定提示訊息及時間限制來展示使用 <code>read</code> 指令的結果。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">read</span> t1</span><br><span class="line">12345</span><br><span class="line">$ <span class="built_in">echo</span> <span class="variable">$t1</span></span><br><span class="line">12345</span><br><span class="line"></span><br><span class="line">$ <span class="built_in">read</span> -a t2</span><br><span class="line">123 456 789</span><br><span class="line">$ <span class="built_in">echo</span> <span class="variable">$&#123;t2[0]&#125;</span></span><br><span class="line">123</span><br><span class="line">$ <span class="built_in">echo</span> <span class="variable">$&#123;t2[1]&#125;</span></span><br><span class="line">456</span><br><span class="line">$ <span class="built_in">echo</span> <span class="variable">$&#123;t2[2]&#125;</span></span><br><span class="line">789</span><br><span class="line"></span><br><span class="line">$ <span class="built_in">read</span> -p <span class="string">"user name : "</span> -t 20 t3</span><br><span class="line">user name : sam</span><br><span class="line">$ <span class="built_in">echo</span> <span class="variable">$t3</span></span><br><span class="line">sam</span><br></pre></td></tr></table></figure>
+<h2 id="變數類型宣告"><a class="header-anchor" href="#變數類型宣告"></a>變數類型宣告</h2>
+<p>變數也可以透過宣告指定想要的類型，例如 : 陣列、整數等等。</p>
+<h3 id="declare-typeset"><a class="header-anchor" href="#declare-typeset"></a>declare/typeset</h3>
+<p><code>declare</code> 和 <code>typeset</code> 指令可以用於宣告變數的類型，如果沒有特別指定就會是字串。因此如果沒有指定成整數就無法進行運算。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">declare</span> &lt;option&gt; &lt;variable name&gt;</span><br></pre></td></tr></table></figure>
+<p>option :</p>
+<ul>
+<li>-a : 變數為陣列格式，輸入的內容以空白隔開依序存入陣列中，陣列索引從 0 開始。</li>
+<li>-i : 整數類型，可以進行數值運算，但是預設只能做到整數型態。</li>
+<li>-l : 將變數內容轉換為小寫。</li>
+<li>-r : 變數僅為 readonly，不可被更改也不可以被 unset。</li>
+<li>-u : 將變數內容轉換為大寫。</li>
+<li>-x : 開放變數轉換成環境變數，等同使用 <code>export</code>。</li>
+</ul>
+<p>variable name : 變數名稱。</p>
+<p><strong>範例</strong></p>
+<ul>
+<li>基本宣告變數，沒有特別指定就會是字串，如果是不指定其實也不需要使用 <code>declare</code> 指令，可以和前面提過的變數給值方式使用就好。</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">declare</span> td1=<span class="built_in">test</span></span><br><span class="line">$ <span class="built_in">echo</span> <span class="variable">$td1</span></span><br><span class="line"><span class="built_in">test</span></span><br></pre></td></tr></table></figure>
+<ul>
+<li>
+<p>宣告為陣列類型，和 <code>read</code> 指令不同的是 <code>read</code> 直接輸入陣列內容可以不須加其他符號只要透過空白隔開。而 <code>declare</code> 如果在宣告時要先給值則必須使用小括號 <code>()</code> 將內容括起來。</p>
+<p>另外也可以直接指定值要寫進哪一個 index。</p>
+</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">declare</span> -a td2=(aaa bbb ccc)</span><br><span class="line">$ <span class="built_in">echo</span> <span class="variable">$&#123;td2[0]&#125;</span></span><br><span class="line">aaa</span><br><span class="line">$ <span class="built_in">echo</span> <span class="variable">$&#123;td2[1]&#125;</span></span><br><span class="line">bbb</span><br><span class="line">$ <span class="built_in">echo</span> <span class="variable">$&#123;td2[2]&#125;</span></span><br><span class="line">ccc</span><br><span class="line"></span><br><span class="line"><span class="comment"># 以此種格式宣告不加 -a 也可以</span></span><br><span class="line">$ <span class="built_in">declare</span> td2=(aaa bbb ccc)</span><br><span class="line">$ <span class="built_in">echo</span> <span class="variable">$&#123;td2[0]&#125;</span></span><br><span class="line">aaa</span><br><span class="line">$ <span class="built_in">echo</span> <span class="variable">$&#123;td2[1]&#125;</span></span><br><span class="line">bbb</span><br><span class="line">$ <span class="built_in">echo</span> <span class="variable">$&#123;td2[2]&#125;</span></span><br><span class="line">ccc</span><br><span class="line"></span><br><span class="line">$ <span class="built_in">declare</span> -a td2</span><br><span class="line">$ td2[0]=test1</span><br><span class="line">$ td2[1]=test2</span><br></pre></td></tr></table></figure>
+<ul>
+<li>變數內容強制轉成小寫 :</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">declare</span> -l td3=<span class="string">"ABCDE"</span></span><br><span class="line">$ <span class="built_in">echo</span> <span class="variable">$td3</span></span><br><span class="line">abcde</span><br></pre></td></tr></table></figure>
+<ul>
+<li>變數內容設為 <code>readonly</code>，不可修改。可以看到下面的範例想要嘗試修改結果失敗。</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">declare</span> -r td4=<span class="string">"aabbcc"</span></span><br><span class="line">$ td4=<span class="string">"abcd"</span></span><br><span class="line">bash: td4: <span class="built_in">readonly</span> variable</span><br></pre></td></tr></table></figure>
+<ul>
+<li>變數內容強制轉成大寫 :</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">declare</span> -u td5=<span class="string">"aabbcc"</span></span><br><span class="line">$ <span class="built_in">echo</span> <span class="variable">$td5</span></span><br><span class="line">AABBCC</span><br></pre></td></tr></table></figure>
+<ul>
+<li>變數直接宣告成環境變數，省去了要再使用 <code>export</code> 開放成環境變數。</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">declare</span> -x td6=<span class="string">"aabbcc"</span></span><br><span class="line">$ env</span><br><span class="line">...</span><br><span class="line">td6=aabbcc</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+<ul>
+<li>下面這個範例是結合陣列和整數運算的應用，可以看到雖然建立陣列時沒有定義變數裡面的值是甚麼類型，但是只要把最終輸出的變數設定成整數，在運算時就會自動變成整數運算。</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">declare</span> -a td7=(1 2 3)</span><br><span class="line">$ <span class="built_in">declare</span> -i tmp</span><br><span class="line">$ tmp=<span class="variable">$&#123;td7[0]&#125;</span>+<span class="variable">$&#123;td7[1]&#125;</span>+<span class="variable">$&#123;td7[2]&#125;</span></span><br><span class="line">$ <span class="built_in">echo</span> <span class="variable">$tmp</span></span><br><span class="line">6</span><br></pre></td></tr></table></figure>
+<h3 id="陣列"><a class="header-anchor" href="#陣列"></a>陣列</h3>
+<p>前面其實已經有介紹到了陣列的宣告，這裡再補充一下陣列也可以直接像變數一樣宣告而不一定要用 <code>declare</code>。如下 :</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">$ arr[0]=<span class="string">"ttt"</span></span><br><span class="line">$ <span class="built_in">echo</span> <span class="variable">$&#123;arr[0]&#125;</span></span><br><span class="line">ttt</span><br><span class="line"></span><br><span class="line">$ arr=(1 2 3)</span><br><span class="line">$ <span class="built_in">echo</span> <span class="variable">$&#123;arr[0]&#125;</span></span><br><span class="line">1</span><br><span class="line">$ <span class="built_in">echo</span> <span class="variable">$&#123;arr[1]&#125;</span></span><br><span class="line">2</span><br><span class="line">$ <span class="built_in">echo</span> <span class="variable">$&#123;arr[2]&#125;</span></span><br><span class="line">3</span><br></pre></td></tr></table></figure>
+<h2 id="Summary"><a class="header-anchor" href="#Summary"></a>Summary</h2>
+<p>本篇針對 Shell 的變數做了進一步的介紹，而變數大多是在撰寫 Shell Script 時才會用到，平時會用到的大概就是環境變數和語系的變數了。所以接著下一篇我們就來介紹什麼是 Shell Script 以及如何撰寫。</p>
+<h2 id="參考"><a class="header-anchor" href="#參考"></a>參考</h2>
+<p>[1] <a href="http://linux.vbird.org/linux_basic/0320bash.php#variable" target="_blank" rel="noopener">認識與學習BASH</a><br>
+[2] <a href="https://crmne0707.pixnet.net/blog/post/315013570-shell-script-%E6%95%99%E5%AD%B8-%E8%AE%8A%E6%95%B8%E7%9A%84%E5%AE%A3%E5%91%8A" target="_blank" rel="noopener">shell script 教學 變數的宣告</a><br>
+[3] <a href="https://linuxconfig.org/how-to-use-arrays-in-bash-script" target="_blank" rel="noopener">How to use arrays in bash script</a></p>
+
+    </div>
+
+    
+    
+    
+      
+  <div class="popular-posts-header">系列文章</div>
+  <ul class="popular-posts">
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/linux-10_shell-basic-concept/" rel="bookmark">Linux (十) - Shell 的基本概念和操作</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/linux-12_shell-script-1/" rel="bookmark">Linux (十二) - Shell Script 的撰寫 I</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/linux-3_file-chgrp-chown-chmod/" rel="bookmark">Linux (三) - 檔案的基本屬性與權限</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/linux-5_disk-management/" rel="bookmark">Linux (五) - 硬碟管理</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/linux-7_pipe/" rel="bookmark">Linux (七) - 管線命令 (pipe)</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/linux-6_user-group-management/" rel="bookmark">Linux (六) - 使用者和群組管理</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/linux-9_ssh-tunnel/" rel="bookmark">Linux (九) - SSH Tunnel 突破防火牆限制</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/linux-1_basic-concept-command/" rel="bookmark">Linux (一) - 基本概念與系統操作</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/linux-2_filesystem/" rel="bookmark">Linux (二) - 檔案系統架構</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/linux-4_file-directory-operation/" rel="bookmark">Linux (四) - 檔案與目錄操作</a></div>
+    </li>
+  </ul>
+
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/tags/Linux/" rel="tag"><i class="fa fa-tag"></i> Linux</a>
+              <a href="/tags/Shell/" rel="tag"><i class="fa fa-tag"></i> Shell</a>
+              <a href="/tags/Bash/" rel="tag"><i class="fa fa-tag"></i> Bash</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/linux-10_shell-basic-concept/" rel="prev" title="Linux (十) - Shell 的基本概念和操作">
+      <i class="fa fa-chevron-left"></i> Linux (十) - Shell 的基本概念和操作
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/linux-12_shell-script-1/" rel="next" title="Linux (十二) - Shell Script 的撰寫 I">
+      Linux (十二) - Shell Script 的撰寫 I <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<!-- tienyulin.github -->
+<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-8271558544185929"
+     data-ad-slot="8611071932"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#取得變數內容-echo"><span class="nav-number">1.</span> <span class="nav-text">取得變數內容 (echo)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#設定變數內容"><span class="nav-number">2.</span> <span class="nav-text">設定變數內容</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#變數設定規則"><span class="nav-number">2.1.</span> <span class="nav-text">變數設定規則</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#環境變數"><span class="nav-number">3.</span> <span class="nav-text">環境變數</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#程序-Process"><span class="nav-number">3.1.</span> <span class="nav-text">程序 (Process)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#列出環境變數-env"><span class="nav-number">3.2.</span> <span class="nav-text">列出環境變數 (env)</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#自訂變數轉成環境變數-export"><span class="nav-number">4.</span> <span class="nav-text">自訂變數轉成環境變數 (export)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#列出所有的變數-set"><span class="nav-number">5.</span> <span class="nav-text">列出所有的變數 (set)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#語系變數-locale"><span class="nav-number">6.</span> <span class="nav-text">語系變數 (locale)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#從鍵盤讀取變數內容"><span class="nav-number">7.</span> <span class="nav-text">從鍵盤讀取變數內容</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#read"><span class="nav-number">7.1.</span> <span class="nav-text">read</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#變數類型宣告"><span class="nav-number">8.</span> <span class="nav-text">變數類型宣告</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#declare-typeset"><span class="nav-number">8.1.</span> <span class="nav-text">declare&#x2F;typeset</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#陣列"><span class="nav-number">8.2.</span> <span class="nav-text">陣列</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Summary"><span class="nav-number">9.</span> <span class="nav-text">Summary</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#參考"><span class="nav-number">10.</span> <span class="nav-text">參考</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Tien-Yu Lin"
+      src="/images/tienyu.jpg">
+  <p class="site-author-name" itemprop="name">Tien-Yu Lin</p>
+  <div class="site-description" itemprop="description">Try not to become a man of success, but rather try to become a man of value. - Albert Einstein</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">45</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">28</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">29</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/tienyulin" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;tienyulin" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://hub.docker.com/u/tienyu" title="DockerHub → https:&#x2F;&#x2F;hub.docker.com&#x2F;u&#x2F;tienyu" rel="noopener" target="_blank"><i class="fab fa-docker fa-fw"></i>DockerHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:t.tienyulin@gmail.com" title="E-Mail → mailto:t.tienyulin@gmail.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.linkedin.com/in/tony-lin-79733714b/" title="Linkedin → https:&#x2F;&#x2F;www.linkedin.com&#x2F;in&#x2F;tony-lin-79733714b&#x2F;" rel="noopener" target="_blank"><i class="fab fa-linkedin fa-fw"></i>Linkedin</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+      <!--google_adsense-->	      
+      	 
+        <div class="links-of-blogroll-title">	     
+          <i class="fa fa-google"></i> AdSense	       
+          <ins class="adsbygoogle"	      
+              style="display:block"	     
+              data-ad-client="ca-pub-8271558544185929"	
+              data-ad-slot="8611071932"	
+              data-ad-format="auto"	
+              data-full-width-responsive="true"></ins>	
+          <script>	
+            (adsbygoogle = window.adsbygoogle || []).push({});	
+          </script>	
+        </div>	
+      	
+      <!--/google_adsense-->
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Tien-Yu Lin</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a>
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="Total Visitors">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="Total Views">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+  <script>
+    (function(){
+      var canonicalURL, curProtocol;
+      //Get the <link> tag
+      var x=document.getElementsByTagName("link");
+		//Find the last canonical URL
+		if(x.length > 0){
+			for (i=0;i<x.length;i++){
+				if(x[i].rel.toLowerCase() == 'canonical' && x[i].href){
+					canonicalURL=x[i].href;
+				}
+			}
+		}
+    //Get protocol
+	    if (!canonicalURL){
+	    	curProtocol = window.location.protocol.split(':')[0];
+	    }
+	    else{
+	    	curProtocol = canonicalURL.split(':')[0];
+	    }
+      //Get current URL if the canonical URL does not exist
+	    if (!canonicalURL) canonicalURL = window.location.href;
+	    //Assign script content. Replace current URL with the canonical URL
+      !function(){var e=/([http|https]:\/\/[a-zA-Z0-9\_\.]+\.baidu\.com)/gi,r=canonicalURL,t=document.referrer;if(!e.test(r)){var n=(String(curProtocol).toLowerCase() === 'https')?"https://sp0.baidu.com/9_Q4simg2RQJ8t7jm9iCKT-xh_/s.gif":"//api.share.baidu.com/s.gif";t?(n+="?r="+encodeURIComponent(document.referrer),r&&(n+="&l="+r)):r&&(n+="?l="+r);var i=new Image;i.src=n}}(window);})();
+  </script>
+
+
+
+
+  
+<script src="//cdn.jsdelivr.net/npm/algoliasearch@4/dist/algoliasearch-lite.umd.js"></script>
+<script src="//cdn.jsdelivr.net/npm/instantsearch.js@4/dist/instantsearch.production.min.js"></script>
+<script src="/js/algolia-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://tienyulin.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  var disqus_config = function() {
+    this.page.url = "https://tienyulin.github.io/linux-11_shell-variable/";
+    this.page.identifier = "linux-11_shell-variable/";
+    this.page.title = "Linux (十一) - Shell 的變數設定";
+    };
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: disqus_config
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://tienyulin.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>

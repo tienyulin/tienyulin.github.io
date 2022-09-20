@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="/lib/pace/pace-theme-bounce.min.css">
+  <script src="/lib/pace/pace.min.js"></script>
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"tienyulin.github.io","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"appID":"CKNGBQCM6Q","apiKey":"aa8f782cff7f67f246a3fd15f8592fc1","indexName":"tienyulin.github.com","hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="在實務應用上，最常碰到的就是資源不足的問題，而這個問題常常歸因於每個應用在每個時間點的流量都不會固定，但是每個應用分配到的資源卻是固定的。既然流量不同，也就代表所需的資源是不固定的，因此 Kubernetes 提供了自動水平擴展的功能來解決這個問題。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Kubernetes (五) - 實現 Pod 的 AutoScaling">
+<meta property="og:url" content="https://tienyulin.github.io/kubernetes-5_horizontal-pod-autoscaler-hpa/">
+<meta property="og:site_name" content="Tienyu Note">
+<meta property="og:description" content="在實務應用上，最常碰到的就是資源不足的問題，而這個問題常常歸因於每個應用在每個時間點的流量都不會固定，但是每個應用分配到的資源卻是固定的。既然流量不同，也就代表所需的資源是不固定的，因此 Kubernetes 提供了自動水平擴展的功能來解決這個問題。">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://i.imgur.com/FvsXojk.png">
+<meta property="og:image" content="https://ramzibot.files.wordpress.com/2019/10/k8s2.png">
+<meta property="og:image" content="https://i.imgur.com/uslmurJ.png">
+<meta property="og:image" content="https://i.imgur.com/Ia7uoL7.png">
+<meta property="article:published_time" content="2020-09-09T00:00:00.000Z">
+<meta property="article:modified_time" content="2020-09-09T00:00:00.000Z">
+<meta property="article:author" content="Tien-Yu Lin">
+<meta property="article:tag" content="Container">
+<meta property="article:tag" content="Docker">
+<meta property="article:tag" content="Kubernetes">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://i.imgur.com/FvsXojk.png">
+
+<link rel="canonical" href="https://tienyulin.github.io/kubernetes-5_horizontal-pod-autoscaler-hpa/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>Kubernetes (五) - 實現 Pod 的 AutoScaling | Tienyu Note</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-169323232-1"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'UA-169323232-1');
+      }
+    </script>
+
+
+
+
+
+
+
+<script data-ad-client="ca-pub-8271558544185929" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Tienyu Note</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">Fly with me</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives<span class="badge">45</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-folder-open fa-fw"></i>Categories<span class="badge">28</span></a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags<span class="badge">29</span></a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-sitemap">
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-sitemap fa-fw"></i>Sitemap</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container"></div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="algolia-results">
+  <div id="algolia-stats"></div>
+  <div id="algolia-hits"></div>
+  <div id="algolia-pagination" class="algolia-pagination"></div>
+</div>
+
+      
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/tienyulin" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="https://tienyulin.github.io/kubernetes-5_horizontal-pod-autoscaler-hpa/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/tienyu.jpg">
+      <meta itemprop="name" content="Tien-Yu Lin">
+      <meta itemprop="description" content="Try not to become a man of success, but rather try to become a man of value. - Albert Einstein">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Tienyu Note">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Kubernetes (五) - 實現 Pod 的 AutoScaling
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2020-09-09 00:00:00" itemprop="dateCreated datePublished" datetime="2020-09-09T00:00:00+00:00">2020-09-09</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Kubernetes/" itemprop="url" rel="index"><span itemprop="name">Kubernetes</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="Views" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">Views: </span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus: </span>
+    
+    <a title="disqus" href="/kubernetes-5_horizontal-pod-autoscaler-hpa/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="kubernetes-5_horizontal-pod-autoscaler-hpa/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p><img src="https://i.imgur.com/FvsXojk.png" alt="Horizontal Pod Autoscaler"></p>
+<p>在實務應用上，最常碰到的就是資源不足的問題，而這個問題常常歸因於每個應用在每個時間點的流量都不會固定，但是每個應用分配到的資源卻是固定的。既然流量不同，也就代表所需的資源是不固定的，因此 Kubernetes 提供了自動水平擴展的功能來解決這個問題。</p>
+<a id="more"></a>
+<h2 id="Horizontal-Pod-Autoscaler"><a class="header-anchor" href="#Horizontal-Pod-Autoscaler"></a>Horizontal Pod Autoscaler</h2>
+<p>Kubernetes 提供的自動水平擴展稱為 Horizontal Pod Autoscaler，自動水平擴展的好處是不需要一次給某個應用很多的資源以增加資源使用的彈性，當應用所擁有的資源被使用到了指定的門檻時就會自動再生成一個相同的應用來幫忙分擔資源使用，在 Kubernetes 就是再生成一個一樣的 Pod。而當應用使用的資源低於指定的門檻時，如果有太多的 Pod 就會將這些 Pod 關閉以減少資源的占用。</p>
+<h3 id="運作原理"><a class="header-anchor" href="#運作原理"></a>運作原理</h3>
+<p><img src="https://ramzibot.files.wordpress.com/2019/10/k8s2.png" alt="Horizontal Pod Autoscaler Overall"></p>
+<p>上面這張圖是 Horizontal Pod Autoscaler 的運作方式，首先看到 Node 裡面的 <code>cAdvisor</code>，cAdvisor 可以對 Node 上的資源及容器進行即時的監控。而 cAdvisor 已經內建在 Kubernetes 裡並且會在 Kubelet 啟動時同步被啟動。</p>
+<p>接著再看到 <code>Metrics Server</code>，Metrics Server 負責用來收集 Cluster 內所有資源的使用狀況，所以他會透過每個 Node 的 Kubelet 來向 cAdvisor 取得資源使用的訊息。這裡順帶提一下，舊版使用 heapster 來收集資源使用狀況，但在 Kubernetes 1.11 以後已經廢除而改用 Metrics Server。</p>
+<p>最後再看到 <code>Horizontal Pod Autoscaler</code>，Horizontal Pod Autoscaler 預設每 15 秒會向 Metrics Server 要求提供資源使用的 Metric，再與設定的資源使用上限進行比對，如果達到擴展的門檻則進行水平擴展。</p>
+<h3 id="建立-HorizontalPodAutoscaler"><a class="header-anchor" href="#建立-HorizontalPodAutoscaler"></a>建立 HorizontalPodAutoscaler</h3>
+<p>下面是 HorizontalPodAutoscaler 的基本格式 :</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">autoscaling/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">HorizontalPodAutoscaler</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">&lt;name&gt;</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">scaleTargetRef:</span></span><br><span class="line">    <span class="attr">apiVersion:</span> <span class="string">apps/v1beta2</span></span><br><span class="line">    <span class="attr">kind:</span> <span class="string">Deployment</span></span><br><span class="line">    <span class="attr">name:</span> <span class="string">&lt;deployment</span> <span class="string">name&gt;</span></span><br><span class="line">  <span class="attr">minReplicas:</span> <span class="string">&lt;min</span> <span class="string">replica</span> <span class="string">number&gt;</span></span><br><span class="line">  <span class="attr">maxReplicas:</span> <span class="string">&lt;max</span> <span class="string">replica</span> <span class="string">number&gt;</span></span><br><span class="line">  <span class="attr">targetCPUUtilizationPercentage:</span> <span class="string">&lt;utilization</span> <span class="string">percentage&gt;</span></span><br></pre></td></tr></table></figure>
+<ul>
+<li>
+<p>scaleTargetRef<br>
+指定要 Autoscaling 的對象。</p>
+</li>
+<li>
+<p>minReplicas、maxReplicas<br>
+指定最少要有幾個 Pod 和最多可以擴展到多少個 Pod。</p>
+</li>
+<li>
+<p>targetCPUUtilizationPercentage<br>
+指定 CPU 使用率的目標百分比，當超過指定的目標就會開始自動擴展。</p>
+</li>
+</ul>
+<p>另外一種格式如下，可以看到 <code>targetCPUUtilizationPercentage</code> 被取代成了 metrics，因為 CPU 使用率就是一個資源度量指標(resource metric)。除了指定 CPU 使用率外，還可以指定 Memory 的使用量。這裡要特別注意的是 <code>如果指定了多個指標則都必須符合才會觸發自動水平擴展</code>。</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">autoscaling/v2beta2</span> </span><br><span class="line"><span class="attr">kind:</span> <span class="string">HorizontalPodAutoscaler</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">&lt;name&gt;</span> </span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">scaleTargetRef:</span></span><br><span class="line">    <span class="attr">apiVersion:</span> <span class="string">apps/v1</span> </span><br><span class="line">    <span class="attr">kind:</span> <span class="string">Deployment</span> </span><br><span class="line">    <span class="attr">name:</span> <span class="string">&lt;deployment</span> <span class="string">name&gt;</span></span><br><span class="line">  <span class="attr">minReplicas:</span> <span class="string">&lt;min</span> <span class="string">replica</span> <span class="string">number&gt;</span> </span><br><span class="line">  <span class="attr">maxReplicas:</span> <span class="string">&lt;max</span> <span class="string">replica</span> <span class="string">number&gt;</span></span><br><span class="line">  <span class="attr">metrics:</span> </span><br><span class="line">  <span class="bullet">-</span> <span class="attr">type:</span> <span class="string">Resource</span></span><br><span class="line">    <span class="attr">resource:</span></span><br><span class="line">      <span class="attr">name:</span> <span class="string">cpu</span> </span><br><span class="line">      <span class="attr">target:</span></span><br><span class="line">        <span class="attr">type:</span> <span class="string">Utilization</span> </span><br><span class="line">        <span class="attr">averageValue:</span> <span class="string">&lt;utilization</span> <span class="string">percentage&gt;</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">type:</span> <span class="string">Resource</span></span><br><span class="line">    <span class="attr">resource:</span></span><br><span class="line">      <span class="attr">name:</span> <span class="string">memory</span> </span><br><span class="line">      <span class="attr">target:</span></span><br><span class="line">        <span class="attr">type:</span> <span class="string">Utilization</span> </span><br><span class="line">        <span class="attr">averageValue:</span> <span class="string">&lt;utilization</span> <span class="string">value&gt;</span></span><br></pre></td></tr></table></figure>
+<p>另外也可以使用 <code>kubectl autoscale</code> 指令來直接建立，如下 :</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">kubectl autoscale deployment &lt;deployment name&gt; \</span><br><span class="line">--cpu-percent=&lt;percent&gt; \</span><br><span class="line">--min=&lt;value&gt; \</span><br><span class="line">--max=&lt;value&gt;</span><br></pre></td></tr></table></figure>
+<h3 id="範例"><a class="header-anchor" href="#範例"></a>範例</h3>
+<p>我們使用 <a href="https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale-walkthrough/" target="_blank" rel="noopener">Kubernetes 官網</a> 的 demo 作為範例，這個範例使用的是 Kubernetes 官方自己建立好的 docker image，啟動之後如果收到 Request 就會開始進行大量的運算來增加 CPU 的負載量，如下 :</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line">  $x = <span class="number">0.0001</span>;</span><br><span class="line">  <span class="keyword">for</span> ($i = <span class="number">0</span>; $i &lt;= <span class="number">1000000</span>; $i++) &#123;</span><br><span class="line">    $x += sqrt($x);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">echo</span> <span class="string">"OK!"</span>;</span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
+<p>首先要先建立 <code>php-apache.yml</code>，這個 yaml 檔會建立一個 Deployment 和 Service。這裡可以看到 <code>spec.resources.request</code> 代表啟動時這個 Pod 要求要配置 200m 的 CPU 給他，200m 代表 200 milicpu(milicore)，也就是要一個 CPU 20% 的資源。而如果 Node 是多核心，則代表這個 Pod 要求每個核心都配 20% 的資源給他。</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">apps/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Deployment</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">php-apache</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">matchLabels:</span></span><br><span class="line">      <span class="attr">run:</span> <span class="string">php-apache</span></span><br><span class="line">  <span class="attr">replicas:</span> <span class="number">1</span></span><br><span class="line">  <span class="attr">template:</span></span><br><span class="line">    <span class="attr">metadata:</span></span><br><span class="line">      <span class="attr">labels:</span></span><br><span class="line">        <span class="attr">run:</span> <span class="string">php-apache</span></span><br><span class="line">    <span class="attr">spec:</span></span><br><span class="line">      <span class="attr">containers:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">php-apache</span></span><br><span class="line">        <span class="attr">image:</span> <span class="string">k8s.gcr.io/hpa-example</span></span><br><span class="line">        <span class="attr">ports:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">containerPort:</span> <span class="number">80</span></span><br><span class="line">        <span class="attr">resources:</span></span><br><span class="line">          <span class="attr">limits:</span></span><br><span class="line">            <span class="attr">cpu:</span> <span class="string">500m</span></span><br><span class="line">          <span class="attr">requests:</span></span><br><span class="line">            <span class="attr">cpu:</span> <span class="string">200m</span></span><br><span class="line"><span class="meta">---</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Service</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">php-apache</span></span><br><span class="line">  <span class="attr">labels:</span></span><br><span class="line">    <span class="attr">run:</span> <span class="string">php-apache</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">ports:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">port:</span> <span class="number">80</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">run:</span> <span class="string">php-apache</span></span><br></pre></td></tr></table></figure>
+<p>啟動 Deployment 和 Service。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"> kubectl get deploy php-apache</span><br><span class="line">NAME         READY   UP-TO-DATE   AVAILABLE   AGE</span><br><span class="line">php-apache   1/1     1            1           2m34s</span><br></pre></td></tr></table></figure>
+<p>接著建立 <code>php-apache-hpa.yml</code>，這個 yaml 檔會建立一個 HorizontalPodAutoscaler。當 CPU 使用率超過了 50% 就會觸發水平擴展，並且最多會擴展到 10 個 Pod。</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">autoscaling/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">HorizontalPodAutoscaler</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">php-apache-hpa</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">scaleTargetRef:</span></span><br><span class="line">    <span class="attr">apiVersion:</span> <span class="string">apps/v1beta2</span></span><br><span class="line">    <span class="attr">kind:</span> <span class="string">Deployment</span></span><br><span class="line">    <span class="attr">name:</span> <span class="string">php-apache</span></span><br><span class="line">  <span class="attr">minReplicas:</span> <span class="number">1</span></span><br><span class="line">  <span class="attr">maxReplicas:</span> <span class="number">10</span></span><br><span class="line">  <span class="attr">targetCPUUtilizationPercentage:</span> <span class="number">50</span></span><br></pre></td></tr></table></figure>
+<p>啟動前我們要先啟動 <a href="https://tienyulin.github.io/kubernetes-install#minikube">minikube</a> 的 metrics-server。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ minikube addons <span class="built_in">enable</span> metrics-server</span><br><span class="line">🌟  The <span class="string">'metrics-server'</span> addon is enabled</span><br></pre></td></tr></table></figure>
+<p>啟動 HorizontalPodAutoscaler。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl create -f php-apache-hpa.yml</span><br><span class="line">horizontalpodautoscaler.autoscaling/php-apache-hpa created</span><br></pre></td></tr></table></figure>
+<p>查看剛剛建立起來的 HorizontalPodAutoscaler。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl get hpa</span><br><span class="line">NAME             REFERENCE               TARGETS         MINPODS   MAXPODS   REPLICAS   AGE</span><br><span class="line">php-apache-hpa   Deployment/php-apache   &lt;unknown&gt;/50%   1         10        1          69s</span><br></pre></td></tr></table></figure>
+<h4 id="增加-CPU-負載量"><a class="header-anchor" href="#增加-CPU-負載量"></a>增加 CPU 負載量</h4>
+<p>建好 HorizontalPodAutoscaler 後，我們就來進行測試。首先先另外啟動一個 Container，並且在 Container 內以無窮迴圈的方式不斷的向 php-apache 發送 Request。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">kubectl run -it --rm load-generator --image=busybox /bin/sh</span><br><span class="line"></span><br><span class="line">Hit enter <span class="keyword">for</span> <span class="built_in">command</span> prompt</span><br><span class="line"></span><br><span class="line"><span class="keyword">while</span> <span class="literal">true</span>; <span class="keyword">do</span> wget -q -O- http://php-apache; <span class="keyword">done</span></span><br></pre></td></tr></table></figure>
+<p>接著稍等一下，再次取得 HorizontalPodAutoscaler 就會看到 CPU 使用率已經開始上升，如下這個範例已經飆升到了 252%。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl get hpa</span><br><span class="line">NAME             REFERENCE               TARGETS    MINPODS   MAXPODS   REPLICAS   AGE</span><br><span class="line">php-apache-hpa   Deployment/php-apache   252%/50%   1         10        6          4m5s</span><br></pre></td></tr></table></figure>
+<p>此時再回來看 Deployment 的運行狀況，可以發現 Pod 數量已經擴展到 6 個了。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl get deployment php-apache</span><br><span class="line">NAME         READY   UP-TO-DATE   AVAILABLE   AGE</span><br><span class="line">php-apache   6/6     6            6           6m30s</span><br></pre></td></tr></table></figure>
+<h4 id="降低-CPU-負載量"><a class="header-anchor" href="#降低-CPU-負載量"></a>降低 CPU 負載量</h4>
+<p>先使用 <code>Ctrl+C</code> 停止 busybox Container 的無窮迴圈 Request。</p>
+<p>過了大約幾分鐘再回來看 HorizontalPodAutoscaler 會發現 CPU 使用率已經降下來了。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl get hpa</span><br><span class="line">NAME             REFERENCE               TARGETS   MINPODS   MAXPODS   REPLICAS   AGE</span><br><span class="line">php-apache-hpa   Deployment/php-apache   0%/50%    1         10        7          12m</span><br></pre></td></tr></table></figure>
+<p>這時再回來看 Deployment 的運行狀況，可以發現 Pod 數量也已經降回來了。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl get deployment php-apache</span><br><span class="line">NAME         READY   UP-TO-DATE   AVAILABLE   AGE</span><br><span class="line">php-apache   1/1     1            1           14m</span><br></pre></td></tr></table></figure>
+<h4 id="Overview"><a class="header-anchor" href="#Overview"></a>Overview</h4>
+<p>最後我們用 minikube dashboard 來看一下自動水平擴展的過程。</p>
+<p>首先先看到 CPU 的使用率，可以看到在開始向 php-apache 發送 Request 之後，CPU 使用率就開始不斷向上飆升，停止發送 Request 後下降到了 0。</p>
+<p><img src="https://i.imgur.com/uslmurJ.png" alt="CPU Usage"></p>
+<p>接著再看到 Deployment 的事件，可以看到詳細的列出了 Pod 從 1 個變成 4 個、6 個、7個，最後降回了 1 個。</p>
+<p><img src="https://i.imgur.com/Ia7uoL7.png" alt="Deployment Event"></p>
+<h2 id="Summary"><a class="header-anchor" href="#Summary"></a>Summary</h2>
+<p>自動的進行水平擴展也是 Kubernetes 會非常熱門的其中一個原因，可以不再需要手動的增減伺服器部署應用。</p>
+<p>此外，現在的系統漸漸都開始朝向雲端來建置，雲端會以伺服器和流量的使用量來進行計費，當用戶流量沒有那麼大時就可以自動的減少應用的部署和伺服器的使用，這樣可以省下非常多的費用。</p>
+<h2 id="參考"><a class="header-anchor" href="#參考"></a>參考</h2>
+<p>[1] <a href="https://ithelp.ithome.com.tw/articles/10197046" target="_blank" rel="noopener">實現 Horizontal Pod Autoscaling - HPA</a><br>
+[2] <a href="https://zhuanlan.zhihu.com/p/76031585" target="_blank" rel="noopener">Kubernetes 彈性伸缩全場景解析（三） - HPA 實際手册</a><br>
+[3] <a href="https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale-walkthrough/" target="_blank" rel="noopener">Horizontal Pod Autoscaler Walkthrough</a><br>
+[4] <a href="https://blog.csdn.net/liumiaocn/article/details/104130029" target="_blank" rel="noopener">Kubernetes監控：Metrics Server部署方法</a><br>
+[5] <a href="https://www.qikqiak.com/post/grafana-usage-in-k8s/" target="_blank" rel="noopener">Grafana 在 Kubernetes 中的使用</a></p>
+
+    </div>
+
+    
+    
+    
+      
+  <div class="popular-posts-header">系列文章</div>
+  <ul class="popular-posts">
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/kubernetes-1_concept/" rel="bookmark">Kubernetes (一) - 基本概念</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/kubernetes-2_install/" rel="bookmark">Kubernetes (二) - 安裝和啟動 Kubernetes</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/kubernetes-3_pod/" rel="bookmark">Kubernetes (三) - 實戰 Pod 建立</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/kubernetes-4_service-deployment-ingress/" rel="bookmark">Kubernetes (四) - Pod 進階應用 Service、Deployment、Ingress</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/docker-1_concept/" rel="bookmark">Docker (一) - 容器與Docker的基本概念</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/docker-compose/" rel="bookmark">Docker Compose</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/open-container-initiative-oci/" rel="bookmark">OCI (Open Container Initiative)</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/docker-2_command/" rel="bookmark">Docker (二) - Docker的基本操作</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/docker-3_dockerfile/" rel="bookmark">Docker (三) - 撰寫 Dockerfile</a></div>
+    </li>
+  </ul>
+
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/tags/Container/" rel="tag"><i class="fa fa-tag"></i> Container</a>
+              <a href="/tags/Docker/" rel="tag"><i class="fa fa-tag"></i> Docker</a>
+              <a href="/tags/Kubernetes/" rel="tag"><i class="fa fa-tag"></i> Kubernetes</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/kubernetes-4_service-deployment-ingress/" rel="prev" title="Kubernetes (四) - Pod 進階應用 Service、Deployment、Ingress">
+      <i class="fa fa-chevron-left"></i> Kubernetes (四) - Pod 進階應用 Service、Deployment、Ingress
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/linux-1_basic-concept-command/" rel="next" title="Linux (一) - 基本概念與系統操作">
+      Linux (一) - 基本概念與系統操作 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<!-- tienyulin.github -->
+<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-8271558544185929"
+     data-ad-slot="8611071932"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Horizontal-Pod-Autoscaler"><span class="nav-number">1.</span> <span class="nav-text">Horizontal Pod Autoscaler</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#運作原理"><span class="nav-number">1.1.</span> <span class="nav-text">運作原理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#建立-HorizontalPodAutoscaler"><span class="nav-number">1.2.</span> <span class="nav-text">建立 HorizontalPodAutoscaler</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#範例"><span class="nav-number">1.3.</span> <span class="nav-text">範例</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#增加-CPU-負載量"><span class="nav-number">1.3.1.</span> <span class="nav-text">增加 CPU 負載量</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#降低-CPU-負載量"><span class="nav-number">1.3.2.</span> <span class="nav-text">降低 CPU 負載量</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Overview"><span class="nav-number">1.3.3.</span> <span class="nav-text">Overview</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Summary"><span class="nav-number">2.</span> <span class="nav-text">Summary</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#參考"><span class="nav-number">3.</span> <span class="nav-text">參考</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Tien-Yu Lin"
+      src="/images/tienyu.jpg">
+  <p class="site-author-name" itemprop="name">Tien-Yu Lin</p>
+  <div class="site-description" itemprop="description">Try not to become a man of success, but rather try to become a man of value. - Albert Einstein</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">45</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">28</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">29</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/tienyulin" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;tienyulin" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://hub.docker.com/u/tienyu" title="DockerHub → https:&#x2F;&#x2F;hub.docker.com&#x2F;u&#x2F;tienyu" rel="noopener" target="_blank"><i class="fab fa-docker fa-fw"></i>DockerHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:t.tienyulin@gmail.com" title="E-Mail → mailto:t.tienyulin@gmail.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.linkedin.com/in/tony-lin-79733714b/" title="Linkedin → https:&#x2F;&#x2F;www.linkedin.com&#x2F;in&#x2F;tony-lin-79733714b&#x2F;" rel="noopener" target="_blank"><i class="fab fa-linkedin fa-fw"></i>Linkedin</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+      <!--google_adsense-->	      
+      	 
+        <div class="links-of-blogroll-title">	     
+          <i class="fa fa-google"></i> AdSense	       
+          <ins class="adsbygoogle"	      
+              style="display:block"	     
+              data-ad-client="ca-pub-8271558544185929"	
+              data-ad-slot="8611071932"	
+              data-ad-format="auto"	
+              data-full-width-responsive="true"></ins>	
+          <script>	
+            (adsbygoogle = window.adsbygoogle || []).push({});	
+          </script>	
+        </div>	
+      	
+      <!--/google_adsense-->
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Tien-Yu Lin</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a>
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="Total Visitors">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="Total Views">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+  <script>
+    (function(){
+      var canonicalURL, curProtocol;
+      //Get the <link> tag
+      var x=document.getElementsByTagName("link");
+		//Find the last canonical URL
+		if(x.length > 0){
+			for (i=0;i<x.length;i++){
+				if(x[i].rel.toLowerCase() == 'canonical' && x[i].href){
+					canonicalURL=x[i].href;
+				}
+			}
+		}
+    //Get protocol
+	    if (!canonicalURL){
+	    	curProtocol = window.location.protocol.split(':')[0];
+	    }
+	    else{
+	    	curProtocol = canonicalURL.split(':')[0];
+	    }
+      //Get current URL if the canonical URL does not exist
+	    if (!canonicalURL) canonicalURL = window.location.href;
+	    //Assign script content. Replace current URL with the canonical URL
+      !function(){var e=/([http|https]:\/\/[a-zA-Z0-9\_\.]+\.baidu\.com)/gi,r=canonicalURL,t=document.referrer;if(!e.test(r)){var n=(String(curProtocol).toLowerCase() === 'https')?"https://sp0.baidu.com/9_Q4simg2RQJ8t7jm9iCKT-xh_/s.gif":"//api.share.baidu.com/s.gif";t?(n+="?r="+encodeURIComponent(document.referrer),r&&(n+="&l="+r)):r&&(n+="?l="+r);var i=new Image;i.src=n}}(window);})();
+  </script>
+
+
+
+
+  
+<script src="//cdn.jsdelivr.net/npm/algoliasearch@4/dist/algoliasearch-lite.umd.js"></script>
+<script src="//cdn.jsdelivr.net/npm/instantsearch.js@4/dist/instantsearch.production.min.js"></script>
+<script src="/js/algolia-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://tienyulin.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  var disqus_config = function() {
+    this.page.url = "https://tienyulin.github.io/kubernetes-5_horizontal-pod-autoscaler-hpa/";
+    this.page.identifier = "kubernetes-5_horizontal-pod-autoscaler-hpa/";
+    this.page.title = "Kubernetes (五) - 實現 Pod 的 AutoScaling";
+    };
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: disqus_config
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://tienyulin.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>

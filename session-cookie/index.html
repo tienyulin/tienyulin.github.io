@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="/lib/pace/pace-theme-bounce.min.css">
+  <script src="/lib/pace/pace.min.js"></script>
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"tienyulin.github.io","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"appID":"CKNGBQCM6Q","apiKey":"aa8f782cff7f67f246a3fd15f8592fc1","indexName":"tienyulin.github.com","hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="Http 是沒有狀態的，所以每個Request都是不相關的。 Session 是一種讓 Request 變成有狀態的機制，讓瀏覽器和伺服器能互相關聯。而常見實作 Session的一種方法就是 Cookie。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Session &amp; Cookie">
+<meta property="og:url" content="https://tienyulin.github.io/session-cookie/">
+<meta property="og:site_name" content="Tienyu Note">
+<meta property="og:description" content="Http 是沒有狀態的，所以每個Request都是不相關的。 Session 是一種讓 Request 變成有狀態的機制，讓瀏覽器和伺服器能互相關聯。而常見實作 Session的一種方法就是 Cookie。">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://www.itread01.com/uploads/images/20180928/1538098242-1709.jpg">
+<meta property="article:published_time" content="2020-05-23T00:00:00.000Z">
+<meta property="article:modified_time" content="2020-05-23T00:00:00.000Z">
+<meta property="article:author" content="Tien-Yu Lin">
+<meta property="article:tag" content="JWT">
+<meta property="article:tag" content="Token">
+<meta property="article:tag" content="Session">
+<meta property="article:tag" content="Cookie">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://www.itread01.com/uploads/images/20180928/1538098242-1709.jpg">
+
+<link rel="canonical" href="https://tienyulin.github.io/session-cookie/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>Session & Cookie | Tienyu Note</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-169323232-1"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'UA-169323232-1');
+      }
+    </script>
+
+
+
+
+
+
+
+<script data-ad-client="ca-pub-8271558544185929" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Tienyu Note</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">Fly with me</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives<span class="badge">45</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-folder-open fa-fw"></i>Categories<span class="badge">28</span></a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags<span class="badge">29</span></a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-sitemap">
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-sitemap fa-fw"></i>Sitemap</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container"></div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="algolia-results">
+  <div id="algolia-stats"></div>
+  <div id="algolia-hits"></div>
+  <div id="algolia-pagination" class="algolia-pagination"></div>
+</div>
+
+      
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/tienyulin" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="https://tienyulin.github.io/session-cookie/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/tienyu.jpg">
+      <meta itemprop="name" content="Tien-Yu Lin">
+      <meta itemprop="description" content="Try not to become a man of success, but rather try to become a man of value. - Albert Einstein">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Tienyu Note">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Session & Cookie
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2020-05-23 00:00:00" itemprop="dateCreated datePublished" datetime="2020-05-23T00:00:00+00:00">2020-05-23</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Session/" itemprop="url" rel="index"><span itemprop="name">Session</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Session/Cookie/" itemprop="url" rel="index"><span itemprop="name">Cookie</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="Views" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">Views: </span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus: </span>
+    
+    <a title="disqus" href="/session-cookie/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="session-cookie/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>Http 是沒有狀態的，所以每個Request都是不相關的。</p>
+<p>Session 是一種讓 Request 變成有狀態的機制，讓瀏覽器和伺服器能互相關聯。而常見實作 Session的一種方法就是 Cookie。</p>
+<a id="more"></a>
+<p><img src="https://www.itread01.com/uploads/images/20180928/1538098242-1709.jpg" alt="Session &amp; Cookie"></p>
+<h2 id="Session"><a class="header-anchor" href="#Session"></a>Session</h2>
+<p>Session 是一個暫存的檔案，通常是用來儲存暫時性的資料，比如說使用者的登入狀態，因為 Http 是沒有狀態性的，對於每個 Request 都視是為新的，所以可以透過 Session 紀錄來比對發送 Request 的是誰</p>
+<p>流程 :</p>
+<ol>
+<li>瀏覽器傳送了一個 Request 到 Server</li>
+<li>Server 將 Request 所提供的資訊(網址所夾帶的參數、Session Id)儲存到 Server 端的暫存檔</li>
+</ol>
+<h2 id="實作Session的方法"><a class="header-anchor" href="#實作Session的方法"></a>實作Session的方法</h2>
+<p>實作 Session 有兩種常見的方式，分別為 Cookie 和 URL。</p>
+<h3 id="1-Cookie"><a class="header-anchor" href="#1-Cookie"></a>1. Cookie</h3>
+<p>Cookie 是實作 Session 的一種方式，用來儲存少量的特定資料，資料不存在 Server 端的暫存檔，而是放在 Cookie 裡面並存在用戶端的瀏覽器，當瀏覽器和 Server 互動時會隨著 Request 和 Response 來回傳送</p>
+<p>通常 Session 都會搭配 Cookie 使用來更方便的紀錄資訊。如果只選用其中一個就會有一些問題，例如 :</p>
+<ul>
+<li>只用 Session : 只會在用戶端儲存一個 Session Id，當用戶關閉了瀏覽器(分頁)時，Session Id 就會不見</li>
+<li>只用 Cookie : 所有資訊都會存在用戶端，一旦資料量大時用戶端可能沒有這麼多空間可以儲存，另外若是用戶端電腦遭到駭客竊取，所有的資料都會曝光</li>
+</ul>
+<p>流程 :</p>
+<ol>
+<li>
+<p>Server 收到 Request 後會要求瀏覽器設定一個 Cookie，而這個 Cookie 會儲存一些 Server 要求紀錄的資料，例如 : 一組識別碼用來識別用戶, SessionId, 網址中所夾帶的參數，等等。</p>
+</li>
+<li>
+<p>下次瀏覽器要再發送 Request 給這個 Server 時，便會帶著 Cookie 發送給 Server，Server 就可以根據 Cookie 的內容來決定狀態</p>
+</li>
+</ol>
+<h3 id="2-URL"><a class="header-anchor" href="#2-URL"></a>2. URL</h3>
+<p>Server 根據 Request 內的參數將用戶導向到新的網址，現今考量網路安全大多不用此方法</p>
+<p>以下由購物網站作為範例</p>
+<p>流程 :</p>
+<ol>
+<li>Server 收到一個 Request 之後，將其所提供的參數擷取出來</li>
+</ol>
+<blockquote>
+<p><a href="http://market.com.tw?tmp=apple" target="_blank" rel="noopener">market.com.tw?tmp=apple</a></p>
+</blockquote>
+<ol start="2">
+<li>Server 將提供的參數放進新的網址中</li>
+</ol>
+<blockquote>
+<p><a href="http://market.com.tw?item1=apple" target="_blank" rel="noopener">market.com.tw?item1=apple</a><br>
+apple 被擷取出來放進新的網址中</p>
+</blockquote>
+<ol start="3">
+<li>
+<p>Server 將用戶導向新的網址中</p>
+</li>
+<li>
+<p>瀏覽器再次發送 Request 時便會多了新的參數，Server 便可以再需要這些資訊的時候從網址中取得</p>
+</li>
+</ol>
+<blockquote>
+<p><a href="http://market.com.tw?item1=apple&amp;tmp=orange" target="_blank" rel="noopener">market.com.tw?item1=apple&amp;tmp=orange</a><br>
+瀏覽器加入了新的參數 tmp</p>
+</blockquote>
+<blockquote>
+<p><a href="http://market.com.tw?item1=apple&amp;item2=orange" target="_blank" rel="noopener">market.com.tw?item1=apple&amp;item2=orange</a><br>
+orange 被擷取出來放進新的網址中</p>
+</blockquote>
+<blockquote>
+<p><a href="http://market.com.tw?item1=apple&amp;item2=orange&amp;submit=true" target="_blank" rel="noopener">market.com.tw?item1=apple&amp;item2=orange&amp;submit=true</a><br>
+瀏覽器加入了新的參數 submit，代表 Server 可以去處理這些資料了，此時網址裡就有紀錄了 item1, item2</p>
+</blockquote>
+<h2 id="將-Session-儲存到資料庫"><a class="header-anchor" href="#將-Session-儲存到資料庫"></a>將 Session 儲存到資料庫</h2>
+<p>Session 是一個暫存檔，而這個暫存檔會造成以下幾個問題 :</p>
+<ul>
+<li>大部分大流量的網站會部署在多台主機上，若是只暫存在某台主機上，下次用戶被導向到其他台主機會找不到之前的 Session 暫存檔</li>
+<li>若每次 Request 都存到 Server 暫存檔會造成 Server 負擔太大</li>
+</ul>
+<p>因此可以將 Session 所需要紀錄的資料存到資料庫便可以解決上述問題。</p>
+<p>然而每次都要進資料庫讀取也會有速度上的問題，於是便衍生出了記憶體內的資料庫來提升效能，最常見的是 Redis。想進一步了解什麼是 Redis 以及 Redis 的運作方式請參考本站的 <a href="https://tienyulin.github.io/redis-concept-docker-install-datatype/">Redis 系列文章</a>。</p>
+<h2 id="兩種常見的登入驗證方式"><a class="header-anchor" href="#兩種常見的登入驗證方式"></a>兩種常見的登入驗證方式</h2>
+<h3 id="Cookie-based-Authentication"><a class="header-anchor" href="#Cookie-based-Authentication"></a>Cookie-based Authentication</h3>
+<p>這是一種很常見的驗證方式，利用 Cookie 傳送 Session Id，但是若 Cookie 在途中被攔截，用戶很容易遭受到偽造的 Request 攻擊</p>
+<p>流程 :</p>
+<ol>
+<li>瀏覽器發送帳號密碼到 Server</li>
+<li>Server 驗證帳號密碼成功後便產生一組Session Id放在資料庫</li>
+<li>Server 將 Session Id 放入 Cookie 後回傳給瀏覽器</li>
+<li>下次進入網站時，Request 中 Cookie 的Session Id 會一併傳給 Server，若是 Session Id 有效(包含時效)，則會繼續處理這個 Request</li>
+<li>當用戶登出時需將資料庫和 Cookie 內的 Session Id 清除</li>
+</ol>
+<h3 id="Token-based-Authentication"><a class="header-anchor" href="#Token-based-Authentication"></a>Token-based Authentication</h3>
+<p>類似於 Cookie-based 的流程，但是 Server 會在 Response 時回傳一組加密的Token，以提高安全性。加密的 Token 可以參考 <a href="https://tienyulin.github.io/json-web-token-jwt/">Json Web Token</a>的介紹。</p>
+<p>流程 :</p>
+<ol>
+<li>瀏覽器發送帳號密碼到 Server</li>
+<li>Server 驗證帳號密碼成功後便產生一組加密 Token 放在資料庫</li>
+<li>Server 將 Token 放入 Cookie 後回傳給瀏覽器</li>
+<li>下次進入網站時，Request 中 Cookie 的 Token 會一併傳給 Server，Server 會將 Token 解開做驗證，若驗證成功則繼續處理 Request</li>
+</ol>
+<h2 id="參考"><a class="header-anchor" href="#參考"></a>參考</h2>
+<p>[1] <a href="https://medium.com/@hulitw/session-and-cookie-15e47ed838bc" target="_blank" rel="noopener">白話 Session 與 Cookie：從經營雜貨店開始</a><br>
+[2] <a href="https://techbriefers.com/how-to-work-with-session-and-cookies-in-codeigniter/" target="_blank" rel="noopener">How To Work With Session And Cookies In CodeIgniter</a><br>
+[3] <a href="https://ithelp.ithome.com.tw/articles/10224935" target="_blank" rel="noopener">session、cookie and token | iT邦幫忙</a></p>
+
+    </div>
+
+    
+    
+    
+      
+  <div class="popular-posts-header">系列文章</div>
+  <ul class="popular-posts">
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/json-web-token-jwt/" rel="bookmark">Json Web Token</a></div>
+    </li>
+  </ul>
+
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/tags/JWT/" rel="tag"><i class="fa fa-tag"></i> JWT</a>
+              <a href="/tags/Token/" rel="tag"><i class="fa fa-tag"></i> Token</a>
+              <a href="/tags/Session/" rel="tag"><i class="fa fa-tag"></i> Session</a>
+              <a href="/tags/Cookie/" rel="tag"><i class="fa fa-tag"></i> Cookie</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/json-web-token-jwt/" rel="prev" title="Json Web Token">
+      <i class="fa fa-chevron-left"></i> Json Web Token
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/proxy/" rel="next" title="Proxy - 代理伺服器">
+      Proxy - 代理伺服器 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<!-- tienyulin.github -->
+<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-8271558544185929"
+     data-ad-slot="8611071932"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Session"><span class="nav-number">1.</span> <span class="nav-text">Session</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#實作Session的方法"><span class="nav-number">2.</span> <span class="nav-text">實作Session的方法</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-Cookie"><span class="nav-number">2.1.</span> <span class="nav-text">1. Cookie</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-URL"><span class="nav-number">2.2.</span> <span class="nav-text">2. URL</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#將-Session-儲存到資料庫"><span class="nav-number">3.</span> <span class="nav-text">將 Session 儲存到資料庫</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#兩種常見的登入驗證方式"><span class="nav-number">4.</span> <span class="nav-text">兩種常見的登入驗證方式</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Cookie-based-Authentication"><span class="nav-number">4.1.</span> <span class="nav-text">Cookie-based Authentication</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Token-based-Authentication"><span class="nav-number">4.2.</span> <span class="nav-text">Token-based Authentication</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#參考"><span class="nav-number">5.</span> <span class="nav-text">參考</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Tien-Yu Lin"
+      src="/images/tienyu.jpg">
+  <p class="site-author-name" itemprop="name">Tien-Yu Lin</p>
+  <div class="site-description" itemprop="description">Try not to become a man of success, but rather try to become a man of value. - Albert Einstein</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">45</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">28</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">29</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/tienyulin" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;tienyulin" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://hub.docker.com/u/tienyu" title="DockerHub → https:&#x2F;&#x2F;hub.docker.com&#x2F;u&#x2F;tienyu" rel="noopener" target="_blank"><i class="fab fa-docker fa-fw"></i>DockerHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:t.tienyulin@gmail.com" title="E-Mail → mailto:t.tienyulin@gmail.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.linkedin.com/in/tony-lin-79733714b/" title="Linkedin → https:&#x2F;&#x2F;www.linkedin.com&#x2F;in&#x2F;tony-lin-79733714b&#x2F;" rel="noopener" target="_blank"><i class="fab fa-linkedin fa-fw"></i>Linkedin</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+      <!--google_adsense-->	      
+      	 
+        <div class="links-of-blogroll-title">	     
+          <i class="fa fa-google"></i> AdSense	       
+          <ins class="adsbygoogle"	      
+              style="display:block"	     
+              data-ad-client="ca-pub-8271558544185929"	
+              data-ad-slot="8611071932"	
+              data-ad-format="auto"	
+              data-full-width-responsive="true"></ins>	
+          <script>	
+            (adsbygoogle = window.adsbygoogle || []).push({});	
+          </script>	
+        </div>	
+      	
+      <!--/google_adsense-->
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Tien-Yu Lin</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a>
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="Total Visitors">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="Total Views">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+  <script>
+    (function(){
+      var canonicalURL, curProtocol;
+      //Get the <link> tag
+      var x=document.getElementsByTagName("link");
+		//Find the last canonical URL
+		if(x.length > 0){
+			for (i=0;i<x.length;i++){
+				if(x[i].rel.toLowerCase() == 'canonical' && x[i].href){
+					canonicalURL=x[i].href;
+				}
+			}
+		}
+    //Get protocol
+	    if (!canonicalURL){
+	    	curProtocol = window.location.protocol.split(':')[0];
+	    }
+	    else{
+	    	curProtocol = canonicalURL.split(':')[0];
+	    }
+      //Get current URL if the canonical URL does not exist
+	    if (!canonicalURL) canonicalURL = window.location.href;
+	    //Assign script content. Replace current URL with the canonical URL
+      !function(){var e=/([http|https]:\/\/[a-zA-Z0-9\_\.]+\.baidu\.com)/gi,r=canonicalURL,t=document.referrer;if(!e.test(r)){var n=(String(curProtocol).toLowerCase() === 'https')?"https://sp0.baidu.com/9_Q4simg2RQJ8t7jm9iCKT-xh_/s.gif":"//api.share.baidu.com/s.gif";t?(n+="?r="+encodeURIComponent(document.referrer),r&&(n+="&l="+r)):r&&(n+="?l="+r);var i=new Image;i.src=n}}(window);})();
+  </script>
+
+
+
+
+  
+<script src="//cdn.jsdelivr.net/npm/algoliasearch@4/dist/algoliasearch-lite.umd.js"></script>
+<script src="//cdn.jsdelivr.net/npm/instantsearch.js@4/dist/instantsearch.production.min.js"></script>
+<script src="/js/algolia-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://tienyulin.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  var disqus_config = function() {
+    this.page.url = "https://tienyulin.github.io/session-cookie/";
+    this.page.identifier = "session-cookie/";
+    this.page.title = "Session & Cookie";
+    };
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: disqus_config
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://tienyulin.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>

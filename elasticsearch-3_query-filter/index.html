@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="/lib/pace/pace-theme-bounce.min.css">
+  <script src="/lib/pace/pace.min.js"></script>
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"tienyulin.github.io","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"appID":"CKNGBQCM6Q","apiKey":"aa8f782cff7f67f246a3fd15f8592fc1","indexName":"tienyulin.github.com","hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="Elasticsearch 的搜尋提供了許多的語法來進行查詢，透過組合這些語法可以查詢出各式各樣的結果。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Elasticsearch (三) - 查詢和過濾">
+<meta property="og:url" content="https://tienyulin.github.io/elasticsearch-3_query-filter/">
+<meta property="og:site_name" content="Tienyu Note">
+<meta property="og:description" content="Elasticsearch 的搜尋提供了許多的語法來進行查詢，透過組合這些語法可以查詢出各式各樣的結果。">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2020-08-08T00:00:00.000Z">
+<meta property="article:modified_time" content="2020-08-08T00:00:00.000Z">
+<meta property="article:author" content="Tien-Yu Lin">
+<meta property="article:tag" content="NoSQL">
+<meta property="article:tag" content="Elasticsearch">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://tienyulin.github.io/elasticsearch-3_query-filter/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>Elasticsearch (三) - 查詢和過濾 | Tienyu Note</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-169323232-1"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'UA-169323232-1');
+      }
+    </script>
+
+
+
+
+
+
+
+<script data-ad-client="ca-pub-8271558544185929" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Tienyu Note</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">Fly with me</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives<span class="badge">45</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-folder-open fa-fw"></i>Categories<span class="badge">28</span></a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags<span class="badge">29</span></a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-sitemap">
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-sitemap fa-fw"></i>Sitemap</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container"></div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="algolia-results">
+  <div id="algolia-stats"></div>
+  <div id="algolia-hits"></div>
+  <div id="algolia-pagination" class="algolia-pagination"></div>
+</div>
+
+      
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/tienyulin" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="https://tienyulin.github.io/elasticsearch-3_query-filter/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/tienyu.jpg">
+      <meta itemprop="name" content="Tien-Yu Lin">
+      <meta itemprop="description" content="Try not to become a man of success, but rather try to become a man of value. - Albert Einstein">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Tienyu Note">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Elasticsearch (三) - 查詢和過濾
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2020-08-08 00:00:00" itemprop="dateCreated datePublished" datetime="2020-08-08T00:00:00+00:00">2020-08-08</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/NoSQL/" itemprop="url" rel="index"><span itemprop="name">NoSQL</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/NoSQL/Elasticsearch/" itemprop="url" rel="index"><span itemprop="name">Elasticsearch</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="Views" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">Views: </span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus: </span>
+    
+    <a title="disqus" href="/elasticsearch-3_query-filter/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="elasticsearch-3_query-filter/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>Elasticsearch 的搜尋提供了許多的語法來進行查詢，透過組合這些語法可以查詢出各式各樣的結果。</p>
+<a id="more"></a>
+<h2 id="查詢-Query-和過濾-Filter"><a class="header-anchor" href="#查詢-Query-和過濾-Filter"></a>查詢 (Query) 和過濾 (Filter)</h2>
+<p>DSL 這個查詢組件可以以無限組合的方式進行搭配，而他可以使用在查詢和過濾兩種情況。</p>
+<p>當使用過濾情況時，只會針對 Document 是否匹配回傳 Yes、No。例如 :</p>
+<ul>
+<li>created 是否介於 2019 和 2020 之間。</li>
+</ul>
+<p>當使用查詢情況時，除了會看 Document 是否匹配，還會計算得分，也就是判斷這個 Document 有多匹配。例如 :</p>
+<ul>
+<li>run 這個詞也能匹配 runs、running、jog、sprint。</li>
+<li>標籤重複可能相關性越高</li>
+</ul>
+<p>查詢情況這種擁有評分機制的作法非常適合全文檢索，因為全文檢索沒有完全正確的答案。</p>
+<p><strong>效能差異</strong></p>
+<p>過濾查詢 (Filtering queries) 只是簡單的檢查是否包含，這樣計算的方式就非常快速，因此又稱為不評分查詢。此外，考量到過濾查詢有些 Document 很少匹配到，一旦匹配成功 Document 就會被存進 Memory 以利被快速讀去。</p>
+<p>評分查詢 (Scoring queries) 除了要找出匹配的 Document 外，還需要計算每個 Document 的相關性來做評分，因此相比過濾查詢不須進行評分來說效能勢必較差。此外，評分查詢的結果也不會存到 Memory，這又讓他的速度更慢了。</p>
+<p>不過多虧於反向索引，一個簡單的評分查詢在匹配少量的 Document 時可能跟過濾查詢要找上百萬個 Document 的表現一樣好。但是相比下還是過濾效能會較優異，而過濾查詢的目標就是要減少那些需要評分查詢進行檢查的 Document。</p>
+<p><strong>選擇過濾和查詢的時機</strong></p>
+<p>查詢一般用於進行全文檢索或者其他需要影響相關性得分的搜尋，除此之外其他都用過濾。</p>
+<h2 id="查詢-Query"><a class="header-anchor" href="#查詢-Query"></a>查詢 (Query)</h2>
+<p>Elasticsearch 有許多查詢的方式，而查詢方式只要將查詢的語句傳給 <code>query</code> 參數即可，如下 :</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">GET /_search</span><br><span class="line">&#123;</span><br><span class="line">    <span class="attr">"query"</span> : &lt;Query_Here&gt;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><strong>範例</strong><br>
+查詢所有 Document，<code>{&quot;match_all&quot;:{}}</code> 就是查詢的條件。</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">GET /_search</span><br><span class="line">&#123;</span><br><span class="line">    <span class="attr">"query"</span>:&#123;</span><br><span class="line">        <span class="attr">"match_all"</span>:&#123;&#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>以下介紹一些常用的查詢語法。</p>
+<h3 id="match-all"><a class="header-anchor" href="#match-all"></a>match_all</h3>
+<p>match_all 會匹配出所有的 Document。</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">GET &lt;Index&gt;/&lt;Type&gt;/_search</span><br><span class="line">&#123;</span><br><span class="line">    <span class="attr">"query"</span>:&#123;</span><br><span class="line">        <span class="attr">"match_all"</span>:&#123;&#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><strong>範例</strong></p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">GET sport/basketball/_search</span><br><span class="line">&#123;</span><br><span class="line">    <span class="attr">"query"</span>:&#123;</span><br><span class="line">        <span class="attr">"match_all"</span>:&#123;&#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>查詢的結果如下，首先可以看到這一段是指請求耗時多久以及是否超時。耗時的單位是毫秒。</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">"took" : 2,</span><br><span class="line">"timed_out" : false,</span><br></pre></td></tr></table></figure>
+<p>這一層是這次查詢總共查詢了多少分片。</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">"_shards" : &#123;</span><br><span class="line">  "total" : 5,</span><br><span class="line">  "successful" : 5,</span><br><span class="line">  "skipped" : 0,</span><br><span class="line">  "failed" : 0</span><br><span class="line">&#125;,</span><br></pre></td></tr></table></figure>
+<p>最後 hits 這段表示查詢匹配的結果，外層顯示了總共成功匹配的 Document 數量和匹配最高分是多少。內層會顯示出匹配成功的 Document 的資訊。</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line">"hits" : &#123;</span><br><span class="line">  "total" : 3,</span><br><span class="line">  "max_score" : 1.0,</span><br><span class="line">  "hits" : [</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="attr">"_index"</span> : <span class="string">"sport"</span>,</span><br><span class="line">      <span class="attr">"_type"</span> : <span class="string">"basketball"</span>,</span><br><span class="line">      <span class="attr">"_id"</span> : <span class="string">"2"</span>,</span><br><span class="line">      <span class="attr">"_score"</span> : <span class="number">1.0</span>,</span><br><span class="line">      <span class="attr">"_source"</span> : &#123;</span><br><span class="line">        <span class="attr">"team"</span> : <span class="string">"Lakers"</span>,</span><br><span class="line">        <span class="attr">"location"</span> : <span class="string">"Los Angelas"</span>,</span><br><span class="line">        <span class="attr">"assests"</span> : <span class="literal">null</span>,</span><br><span class="line">        <span class="attr">"champion"</span> : <span class="number">16</span>,</span><br><span class="line">        <span class="attr">"assets"</span> : <span class="number">150</span></span><br><span class="line">      &#125;</span><br><span class="line">    &#125;,</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="attr">"_index"</span> : <span class="string">"sport"</span>,</span><br><span class="line">      <span class="attr">"_type"</span> : <span class="string">"basketball"</span>,</span><br><span class="line">      <span class="attr">"_id"</span> : <span class="string">"1"</span>,</span><br><span class="line">      <span class="attr">"_score"</span> : <span class="number">1.0</span>,</span><br><span class="line">      <span class="attr">"_source"</span> : &#123;</span><br><span class="line">        <span class="attr">"team"</span> : <span class="string">"Celtics"</span>,</span><br><span class="line">        <span class="attr">"location"</span> : <span class="string">"Boston"</span>,</span><br><span class="line">        <span class="attr">"assests"</span> : <span class="literal">null</span>,</span><br><span class="line">        <span class="attr">"champion"</span> : <span class="number">17</span>,</span><br><span class="line">        <span class="attr">"assets"</span> : <span class="number">100</span></span><br><span class="line">      &#125;</span><br><span class="line">    &#125;,</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="attr">"_index"</span> : <span class="string">"sport"</span>,</span><br><span class="line">      <span class="attr">"_type"</span> : <span class="string">"basketball"</span>,</span><br><span class="line">      <span class="attr">"_id"</span> : <span class="string">"3"</span>,</span><br><span class="line">      <span class="attr">"_score"</span> : <span class="number">1.0</span>,</span><br><span class="line">      <span class="attr">"_source"</span> : &#123;</span><br><span class="line">        <span class="attr">"team"</span> : <span class="string">"Bulls"</span>,</span><br><span class="line">        <span class="attr">"location"</span> : <span class="string">"Chicago"</span>,</span><br><span class="line">        <span class="attr">"assests"</span> : <span class="literal">null</span>,</span><br><span class="line">        <span class="attr">"champion"</span> : <span class="number">6</span>,</span><br><span class="line">        <span class="attr">"assets"</span> : <span class="number">180</span></span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  ]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="match"><a class="header-anchor" href="#match"></a>match</h3>
+<p>match 可以用於全文檢索，包含句子、單詞、數字和日期都可以處理。如果是句子的話，查詢前 Elasticsearch 會先用分析器 (Analyzer) 進行分析，並把句子拆開來再做查詢。而其他的單詞、數字和日期因為都是一個精確的值，所以在匹配 Document 上就會精確的去查詢，也就是要完全相同。</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">GET &lt;Index&gt;/&lt;Type&gt;/_search</span><br><span class="line">&#123;</span><br><span class="line">    <span class="attr">"query"</span>:&#123;</span><br><span class="line">        <span class="attr">"match"</span>:&#123;</span><br><span class="line">            <span class="attr">"&lt;Field&gt;"</span>: <span class="string">"&lt;Value1&gt; &lt;Value2&gt; ..."</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><strong>範例</strong></p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">GET sport/basketball/_search</span><br><span class="line">&#123;</span><br><span class="line">    <span class="attr">"query"</span>:&#123;</span><br><span class="line">        <span class="attr">"match"</span>:&#123;</span><br><span class="line">            <span class="attr">"location"</span>: <span class="string">"Los Boston Bulls"</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>下面的結果可以看到 location 有 Los 和 Boston 的都被查詢出來了，而 Bulls 因為在 location 中找不到所以沒有結果。</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line">"hits" : &#123;</span><br><span class="line">  "total" : 2,</span><br><span class="line">  "max_score" : 0.2876821,</span><br><span class="line">  "hits" : [</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="attr">"_index"</span> : <span class="string">"sport"</span>,</span><br><span class="line">      <span class="attr">"_type"</span> : <span class="string">"basketball"</span>,</span><br><span class="line">      <span class="attr">"_id"</span> : <span class="string">"2"</span>,</span><br><span class="line">      <span class="attr">"_score"</span> : <span class="number">0.2876821</span>,</span><br><span class="line">      <span class="attr">"_source"</span> : &#123;</span><br><span class="line">        <span class="attr">"team"</span> : <span class="string">"Lakers"</span>,</span><br><span class="line">        <span class="attr">"location"</span> : <span class="string">"Los Angelas"</span>,</span><br><span class="line">        <span class="attr">"assets"</span> : <span class="number">150</span>,</span><br><span class="line">        <span class="attr">"champion"</span> : <span class="number">16</span></span><br><span class="line">      &#125;</span><br><span class="line">    &#125;,</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="attr">"_index"</span> : <span class="string">"sport"</span>,</span><br><span class="line">      <span class="attr">"_type"</span> : <span class="string">"basketball"</span>, </span><br><span class="line">      <span class="attr">"_id"</span> : <span class="string">"1"</span>,</span><br><span class="line">      <span class="attr">"_score"</span> : <span class="number">0.2876821</span>,</span><br><span class="line">      <span class="attr">"_source"</span> : &#123;</span><br><span class="line">        <span class="attr">"team"</span> : <span class="string">"Celtics"</span>,</span><br><span class="line">        <span class="attr">"location"</span> : <span class="string">"Boston"</span>,</span><br><span class="line">        <span class="attr">"assets"</span> : <span class="number">100</span>,</span><br><span class="line">        <span class="attr">"champion"</span> : <span class="number">17</span></span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  ]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>除了直接帶值做查詢，Field 還有一些參數可以指定來做到更進階的查詢。例如 :</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">GET sport/basketball/_search</span><br><span class="line">&#123;</span><br><span class="line">    <span class="attr">"query"</span>:&#123;</span><br><span class="line">        <span class="attr">"match"</span>:&#123;</span><br><span class="line">            <span class="attr">"location"</span>: &#123;</span><br><span class="line">              <span class="attr">"query"</span>: <span class="string">"Los Angelas Boston Bulls"</span>,</span><br><span class="line">              <span class="attr">"minimum_should_match"</span>: <span class="number">2</span></span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">GET sport/basketball/_search</span><br><span class="line">&#123;</span><br><span class="line">    <span class="attr">"query"</span>:&#123;</span><br><span class="line">        <span class="attr">"match"</span>:&#123;</span><br><span class="line">            <span class="attr">"location"</span>: &#123;</span><br><span class="line">              <span class="attr">"query"</span>: <span class="string">"Los Angelas"</span>,</span><br><span class="line">              <span class="attr">"operator"</span>: <span class="string">"and"</span></span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>上面這兩個範例的 Field 加入了一些參數</p>
+<ul>
+<li>query : 原本要查詢的內容</li>
+<li>operator : 可以帶 <code>and</code> 或 <code>or</code>，預設沒指定是用 or。用 or 的話就是所有的單詞只要其中一個有符合就有可能會被匹配出來。相反的，and 就是全部都一定要有。</li>
+<li>minimum_should_match : 設定查詢內容至少要有幾個符合。更常用的是輸入一個百分比，因為無法預測使用者會輸入幾個單詞，例如，<code>&quot;75%&quot;</code>。</li>
+</ul>
+<p>更多參數請參考 <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-match-query.html" target="_blank" rel="noopener">Elasticsearch 官網</a>。</p>
+<h3 id="multi-match"><a class="header-anchor" href="#multi-match"></a>multi_match</h3>
+<p>multi_match 允許對多個 Field 進行查詢匹配。內層的 query 後面接的是查詢的條件，fields 可以填入所有要搜尋的 Field，這裡可以使用 <code>*</code> 作為萬用字元。</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">GET &lt;Index&gt;/&lt;Type&gt;/_search</span><br><span class="line">&#123;</span><br><span class="line">    <span class="attr">"query"</span>:&#123;</span><br><span class="line">        <span class="attr">"multi_match"</span>:&#123;</span><br><span class="line">            <span class="attr">"query"</span>: <span class="string">"&lt;Query&gt;"</span>,</span><br><span class="line">            <span class="attr">"fields"</span>: [<span class="string">"&lt;Field&gt;"</span>, <span class="string">"&lt;Field&gt;"</span>, ...]</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><strong>範例</strong></p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">GET sport/basketball/_search</span><br><span class="line">&#123;</span><br><span class="line">    <span class="attr">"query"</span>:&#123;</span><br><span class="line">        <span class="attr">"multi_match"</span>:&#123;</span><br><span class="line">            <span class="attr">"query"</span>: <span class="string">"Los"</span>,</span><br><span class="line">            <span class="attr">"fields"</span>: [<span class="string">"team"</span>, <span class="string">"location"</span>]</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="multi-phrase"><a class="header-anchor" href="#multi-phrase"></a>multi_phrase</h3>
+<p>multi_phrase 可以指定以片語來搜尋。片語必須要完全符合，也就是不會被拆開成單詞。</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">GET &lt;Index&gt;/&lt;Type&gt;/_search</span><br><span class="line">&#123;</span><br><span class="line">    <span class="attr">"query"</span>:&#123;</span><br><span class="line">        <span class="attr">"match_phrase"</span>:&#123;</span><br><span class="line">            <span class="attr">"&lt;Field&gt;"</span>: <span class="string">"&lt;Phrase&gt;"</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><strong>範例</strong><br>
+執行範例之前，我們先新增一個欄位。</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">POST sport/basketball/_bulk</span><br><span class="line">&#123; <span class="attr">"update"</span> : &#123; <span class="attr">"_id"</span>: <span class="number">1</span> &#125; &#125;</span><br><span class="line">&#123; <span class="attr">"doc"</span>:&#123; <span class="attr">"Schedule"</span>: <span class="string">"Next game at Los Angelas"</span>&#125;&#125;</span><br><span class="line">&#123; <span class="attr">"update"</span> : &#123; <span class="attr">"_id"</span>: <span class="number">2</span> &#125; &#125;</span><br><span class="line">&#123; <span class="attr">"doc"</span>:&#123; <span class="attr">"Schedule"</span>: <span class="string">"Next game at Home"</span>&#125;&#125;</span><br><span class="line">&#123; <span class="attr">"update"</span> : &#123; <span class="attr">"_id"</span>: <span class="number">3</span> &#125; &#125;</span><br><span class="line">&#123; <span class="attr">"doc"</span>:&#123; <span class="attr">"Schedule"</span>: <span class="string">"Last game at Los Angelas"</span>&#125;&#125;</span><br></pre></td></tr></table></figure>
+<p>接下來我們要查詢 Schedule 這個欄位有 Next game 的 Document。</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">GET sport/basketball/_search</span><br><span class="line">&#123;</span><br><span class="line">    <span class="attr">"query"</span>:&#123;</span><br><span class="line">        <span class="attr">"match_phrase"</span>:&#123;</span><br><span class="line">            <span class="attr">"Schedule"</span>: <span class="string">"Next game"</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>查詢的結果可以看到只有兩個 Document，如果把 match_phrase 換成 match 你會發現結果有三個 Document。這就是因為 mathc_phrase 不會把字段拆開，而 match 會拆開，就會因為都有 <code>game</code> 所以三個 Docuemnt 都被查詢出來。</p>
+<h3 id="multi-phrase-prefix"><a class="header-anchor" href="#multi-phrase-prefix"></a>multi_phrase_prefix</h3>
+<p>multi_phrase_prefix 和 match_phrase 一樣可以用片語查詢，差別在於只需要輸入前面一部份就可以找出所有相關的 Document。最常見的就是搜尋推薦，只輸入前面幾個字便會跳出很多個選項可以選。</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">GET &lt;Index&gt;/&lt;Type&gt;/_search</span><br><span class="line">&#123;</span><br><span class="line">    <span class="attr">"query"</span>:&#123;</span><br><span class="line">        <span class="attr">"match_phrase_prefix"</span>:&#123;</span><br><span class="line">             <span class="attr">"&lt;Field&gt;"</span>: <span class="string">"&lt;Phrase Prefix&gt;"</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><strong>範例</strong><br>
+下面這個例子輸入了 <code>at Lo</code>，以輸入的資料來說自然就會找到 <code>at Los Angelas</code>。如果是一般的情況來說，結果可能就會有 at London、at Loveland 等等。</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">GET sport/basketball/_search</span><br><span class="line">&#123;</span><br><span class="line">    <span class="attr">"query"</span>:&#123;</span><br><span class="line">        <span class="attr">"match_phrase_prefix"</span>:&#123;</span><br><span class="line">            <span class="attr">"Schedule"</span>: <span class="string">"at Lo"</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="prefix"><a class="header-anchor" href="#prefix"></a>prefix</h3>
+<p>prefix 用於查詢前綴詞符合輸入的結果，但是只能輸入一個單詞的一部份，不能像 <code>multi_phrase_prefix</code> 輸入一段片語的一部份。</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">GET &lt;Index&gt;/&lt;Type&gt;/_search</span><br><span class="line">&#123;</span><br><span class="line">    <span class="attr">"query"</span>:&#123;</span><br><span class="line">        <span class="attr">"match_phrase_prefix"</span>:&#123;</span><br><span class="line">             <span class="attr">"&lt;Field&gt;"</span>: <span class="string">"&lt;Prefix&gt;"</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><strong>範例</strong></p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">GET sport/basketball/_search</span><br><span class="line">&#123;</span><br><span class="line">    <span class="attr">"query"</span>:&#123;</span><br><span class="line">        <span class="attr">"prefix"</span>:&#123;</span><br><span class="line">            <span class="attr">"Schedule"</span>: <span class="string">"lo"</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="wildcard"><a class="header-anchor" href="#wildcard"></a>wildcard</h3>
+<p>wildcard 用於通用查詢，也就是可以使用萬用字元 <code>*</code> 和 <code>?</code> 來指定通用的查詢條件。<code>*</code> 可以代表 0 個或無限多個字元，<code>?</code> 代表一個字元。</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">GET &lt;Index&gt;/&lt;Type&gt;/_search</span><br><span class="line">&#123;</span><br><span class="line">    <span class="attr">"query"</span>:&#123;</span><br><span class="line">        <span class="attr">"match_phrase_prefix"</span>:&#123;</span><br><span class="line">             <span class="attr">"&lt;Field&gt;"</span>: <span class="string">"&lt;Prefix&gt;"</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><strong>範例</strong><br>
+這個範例查詢的結果可能是 game、videogame、gamy 等等。</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">GET sport/basketball/_search</span><br><span class="line">&#123;</span><br><span class="line">    <span class="attr">"query"</span>:&#123;</span><br><span class="line">        <span class="attr">"wildcard"</span>:&#123;</span><br><span class="line">            <span class="attr">"Schedule"</span>: <span class="string">"*gam?"</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="term"><a class="header-anchor" href="#term"></a>term</h3>
+<p>term 用於精確查詢，也就是要完全相同。精確值可以是數字、時間、Boolean 等等。</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">GET &lt;Index&gt;/&lt;Type&gt;/_search</span><br><span class="line">&#123;</span><br><span class="line">    <span class="attr">"query"</span>:&#123;</span><br><span class="line">        <span class="attr">"term"</span>:&#123;</span><br><span class="line">            <span class="attr">"&lt;Field&gt;"</span>: &lt;Value&gt;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><strong>範例</strong></p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">GET sport/basketball/_search</span><br><span class="line">&#123;</span><br><span class="line">    <span class="attr">"query"</span>:&#123;</span><br><span class="line">        <span class="attr">"term"</span>:&#123;</span><br><span class="line">            <span class="attr">"assets"</span>: <span class="number">150</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="terms"><a class="header-anchor" href="#terms"></a>terms</h3>
+<p>terms 和 term 一樣用於精確查詢，但是 terms 可以查詢多個值，等同於 SQL 的 In。</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">GET &lt;Index&gt;/&lt;Type&gt;/_search</span><br><span class="line">&#123;</span><br><span class="line">    <span class="attr">"query"</span>:&#123;</span><br><span class="line">        <span class="attr">"terms"</span>:&#123;</span><br><span class="line">            <span class="attr">"&lt;Field&gt;"</span>: [&lt;Value&gt;, &lt;Value&gt;, ...]</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><strong>範例</strong></p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">GET sport/basketball/_search</span><br><span class="line">&#123;</span><br><span class="line">    <span class="attr">"query"</span>:&#123;</span><br><span class="line">        <span class="attr">"terms"</span>:&#123;</span><br><span class="line">            <span class="attr">"assets"</span>: [<span class="number">150</span>, <span class="number">180</span>]</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="fuzzy"><a class="header-anchor" href="#fuzzy"></a>fuzzy</h3>
+<p>fuzzy 用於模糊查詢，可以解決拼寫錯誤的問題，但是具有很高的 CPU 消耗和很低的精確度。</p>
+<p>fuzzy 是以編輯距離來做測量，編輯距離是指更改字元、刪除字元、插入字元、轉置相鄰字元等等的次數。在指定的編輯距離內建立所有可能的詞，再進行匹配。</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">GET &lt;Index&gt;/&lt;Type&gt;/_search</span><br><span class="line">&#123;</span><br><span class="line">    <span class="attr">"query"</span>:&#123;</span><br><span class="line">        <span class="attr">"fuzzy"</span>:&#123;</span><br><span class="line">            <span class="attr">"&lt;Field&gt;"</span>: &lt;Value&gt;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><strong>範例</strong><br>
+執行範例前，我們先新增一個欄位，可以看到三個句子裡針對 win 各用了不同的時態。</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">POST sport/basketball/_bulk</span><br><span class="line">&#123; <span class="attr">"update"</span> : &#123; <span class="attr">"_id"</span>: <span class="number">1</span> &#125; &#125;</span><br><span class="line">&#123; <span class="attr">"doc"</span>:&#123; <span class="attr">"News"</span>: <span class="string">"Celtics won at New York last night."</span>&#125;&#125;</span><br><span class="line">&#123; <span class="attr">"update"</span> : &#123; <span class="attr">"_id"</span>: <span class="number">2</span> &#125; &#125;</span><br><span class="line">&#123; <span class="attr">"doc"</span>:&#123; <span class="attr">"News"</span>: <span class="string">"Lakers will win at home tomorrow."</span>&#125;&#125;</span><br><span class="line">&#123; <span class="attr">"update"</span> : &#123; <span class="attr">"_id"</span>: <span class="number">3</span> &#125; &#125;</span><br><span class="line">&#123; <span class="attr">"doc"</span>:&#123; <span class="attr">"News"</span>: <span class="string">"Winning the game in the first half."</span>&#125;&#125;</span><br></pre></td></tr></table></figure>
+<p>接著進行模糊查詢，這裡刻意把 win 輸成 wen，最後查詢的結果還是會有 Document 被找出來。可以自己試試填入其他的值看看結果會如何。</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">GET sport/basketball/_search</span><br><span class="line">&#123;</span><br><span class="line">    <span class="attr">"query"</span>:&#123;</span><br><span class="line">        <span class="attr">"fuzzy"</span>:&#123;</span><br><span class="line">            <span class="attr">"News"</span>: <span class="string">"wen"</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="bool-query"><a class="header-anchor" href="#bool-query"></a>bool query</h3>
+<p>bool query 用於將多個條件組合在一起，而他主要由三個部份組成 :</p>
+<ul>
+<li>must : 所有條件都必須完全匹配，等於 <code>AND</code>。</li>
+<li>should : 至少一個條件要匹配，等於 <code>OR</code>。</li>
+<li>must_not : 所有條件都不能匹配，等於 <code>NOT</code>。</li>
+</ul>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">GET &lt;Index&gt;/&lt;Type&gt;/_search</span><br><span class="line">&#123;</span><br><span class="line">    <span class="attr">"query"</span>: &#123;</span><br><span class="line">        <span class="attr">"bool"</span>: &#123;</span><br><span class="line">            <span class="attr">"must"</span>: &#123;</span><br><span class="line">                <span class="attr">"&lt;action&gt;"</span>: &#123;</span><br><span class="line">                    <span class="attr">"&lt;Field&gt;"</span>: &lt;Value&gt;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;,</span><br><span class="line">            <span class="attr">"should"</span>: [</span><br><span class="line">                &#123;</span><br><span class="line">                    <span class="attr">"&lt;action&gt;"</span>: &#123;</span><br><span class="line">                        <span class="attr">"&lt;Field&gt;"</span>: &lt;Value&gt;</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;,</span><br><span class="line">                &#123;</span><br><span class="line">                    <span class="attr">"&lt;action&gt;"</span>: &#123;</span><br><span class="line">                        <span class="attr">"&lt;Field&gt;"</span>: &lt;Value&gt;</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">            ],</span><br><span class="line">            <span class="attr">"must_not"</span>: &#123;</span><br><span class="line">                <span class="attr">"&lt;action&gt;"</span>: &#123;</span><br><span class="line">                    <span class="attr">"&lt;Field&gt;"</span>: &lt;Value&gt;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><strong>範例</strong></p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">GET sport/basketball/_search</span><br><span class="line">&#123;</span><br><span class="line">    <span class="attr">"query"</span>: &#123;</span><br><span class="line">        <span class="attr">"bool"</span>: &#123;</span><br><span class="line">            <span class="attr">"must"</span>: &#123;</span><br><span class="line">                <span class="attr">"match"</span>: &#123;</span><br><span class="line">                    <span class="attr">"location"</span>:<span class="string">"boston"</span></span><br><span class="line">                &#125;</span><br><span class="line">            &#125;,</span><br><span class="line">            <span class="attr">"should"</span>: [</span><br><span class="line">                &#123;</span><br><span class="line">                    <span class="attr">"term"</span>: &#123;</span><br><span class="line">                        <span class="attr">"assets"</span>: <span class="number">100</span></span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;,</span><br><span class="line">                &#123;</span><br><span class="line">                    <span class="attr">"term"</span>: &#123;</span><br><span class="line">                        <span class="attr">"champion"</span>: <span class="number">10</span></span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">            ],</span><br><span class="line">            <span class="attr">"must_not"</span>: &#123;</span><br><span class="line">                <span class="attr">"term"</span>: &#123;</span><br><span class="line">                    <span class="attr">"Schedule"</span>: <span class="string">"no game"</span></span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>上面這個範例轉換成 SQL 的條件如下 :</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> *</span><br><span class="line"><span class="keyword">FROM</span> sport.basketball</span><br><span class="line"><span class="keyword">WHERE</span> location <span class="keyword">LIKE</span> <span class="string">'%boston%'</span> </span><br><span class="line"><span class="keyword">AND</span> (assets = <span class="number">100</span> <span class="keyword">OR</span> champion = <span class="number">10</span>) </span><br><span class="line"><span class="keyword">AND</span> Schedule != <span class="string">'no game'</span></span><br></pre></td></tr></table></figure>
+<p><code>should</code> 也可以和 match 一樣設定 <code>minimum_should_match</code>。</p>
+<h3 id="range"><a class="header-anchor" href="#range"></a>range</h3>
+<p>range 用於查詢落在指定區間的數字或時間。可以使用以下參數來設定區間 :</p>
+<ul>
+<li>gt : 大於</li>
+<li>gte : 大於等於</li>
+<li>lt : 小於</li>
+<li>lte : 小於等於</li>
+</ul>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">GET &lt;Index&gt;/&lt;Type&gt;/_search</span><br><span class="line">&#123;</span><br><span class="line">    <span class="attr">"query"</span>:&#123;</span><br><span class="line">        <span class="attr">"range"</span>:&#123;</span><br><span class="line">            <span class="attr">"&lt;Field&gt;"</span>: &#123;</span><br><span class="line">                <span class="attr">"&lt;gt|gte&gt;"</span>: &lt;Value&gt;,</span><br><span class="line">                <span class="attr">"&lt;lt|lte&gt;"</span>: &lt;Value&gt;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><strong>範例</strong></p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">GET sport/basketball/_search</span><br><span class="line">&#123;</span><br><span class="line">    <span class="attr">"query"</span>:&#123;</span><br><span class="line">        <span class="attr">"range"</span>:&#123;</span><br><span class="line">            <span class="attr">"champion"</span>: &#123;</span><br><span class="line">                <span class="attr">"gt"</span>: <span class="string">"10"</span>,</span><br><span class="line">                <span class="attr">"lte"</span>: <span class="string">"20"</span></span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="exists"><a class="header-anchor" href="#exists"></a>exists</h3>
+<p>exists 用於查詢是否有值，類似於 SQL 的 <code>IS NOT NULL</code>。</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">GET &lt;Index&gt;/&lt;Type&gt;/_search</span><br><span class="line">&#123;</span><br><span class="line">    <span class="attr">"query"</span>:&#123;</span><br><span class="line">        <span class="attr">"exists"</span>:&#123;</span><br><span class="line">            <span class="attr">"field"</span>: &lt;Field&gt;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><strong>範例</strong></p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">GET sport/basketball/_search</span><br><span class="line">&#123;</span><br><span class="line">    <span class="attr">"query"</span>:&#123;</span><br><span class="line">        <span class="attr">"exists"</span>:&#123;</span><br><span class="line">            <span class="attr">"field"</span>: <span class="string">"champion"</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>這裡要注意的是在 field 後面才是接 Field 的名稱，例如上面這個範例，champion 是 Field 的名稱，不是 field 換成名稱。</p>
+<h2 id="過濾-Filter"><a class="header-anchor" href="#過濾-Filter"></a>過濾 (Filter)</h2>
+<p>在 Elasticsearch 5 以後，Filtered 的過濾用法已經被棄用了，本篇介紹的是 filter 新的用法。</p>
+<h3 id="bool-query-v2"><a class="header-anchor" href="#bool-query-v2"></a>bool query</h3>
+<p>最常見的是結合 bool query 使用，用法就和 must、should、must_not 一樣指定條件。而 filter 的條件如果和 must 一樣，兩個的結果會是一樣的，只差在 filter 不會評分。</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">GET &lt;Index&gt;/&lt;Type&gt;/_search</span><br><span class="line">&#123;</span><br><span class="line">    <span class="attr">"query"</span>: &#123;</span><br><span class="line">        <span class="attr">"bool"</span>: &#123;</span><br><span class="line">            <span class="attr">"filter"</span>: &#123;</span><br><span class="line">                <span class="attr">"&lt;action&gt;"</span>: &#123;</span><br><span class="line">                    <span class="attr">"&lt;Field&gt;"</span>: &lt;Value&gt;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><strong>範例</strong></p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">GET sport/basketball/_search</span><br><span class="line">&#123;</span><br><span class="line">    <span class="attr">"query"</span>: &#123;</span><br><span class="line">        <span class="attr">"bool"</span>: &#123;</span><br><span class="line">            <span class="attr">"must"</span>: &#123;</span><br><span class="line">                <span class="attr">"match"</span>: &#123;</span><br><span class="line">                    <span class="attr">"location"</span>: <span class="string">"Boston Los Angelas"</span></span><br><span class="line">                &#125;</span><br><span class="line">            &#125;,</span><br><span class="line">            <span class="attr">"filter"</span>: &#123;</span><br><span class="line">                <span class="attr">"term"</span>: &#123;</span><br><span class="line">                    <span class="attr">"champion"</span>: <span class="number">17</span></span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>上面這個範例可以看到使用了 must 和 filter，filter 用在不需要評分的 Field，而需要評分的就用其他三個查詢。此外，filter 不會影響到其他三個查詢的評分結果。</p>
+<h2 id="其他搭配參數"><a class="header-anchor" href="#其他搭配參數"></a>其他搭配參數</h2>
+<h3 id="from"><a class="header-anchor" href="#from"></a>from</h3>
+<p>from 可以設定要從原本查詢出來的結果的第幾筆開始作為結果。from 的值從 0 開始。</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">GET &lt;Index&gt;/&lt;Type&gt;/_search</span><br><span class="line">&#123;</span><br><span class="line">    <span class="attr">"query"</span>:&#123;</span><br><span class="line">        <span class="attr">"match_all"</span>: &#123;&#125;</span><br><span class="line">    &#125;,</span><br><span class="line">    <span class="attr">"from"</span>: &lt;Value&gt;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><strong>範例</strong></p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">GET sport/basketball/_search</span><br><span class="line">&#123;</span><br><span class="line">    <span class="attr">"query"</span>:&#123;</span><br><span class="line">        <span class="attr">"match_all"</span>: &#123;&#125;</span><br><span class="line">    &#125;,</span><br><span class="line">    <span class="attr">"from"</span>: <span class="number">2</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="size"><a class="header-anchor" href="#size"></a>size</h3>
+<p>size 可以指定要查詢幾筆。</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">GET &lt;Index&gt;/&lt;Type&gt;/_search</span><br><span class="line">&#123;</span><br><span class="line">    <span class="attr">"query"</span>:&#123;</span><br><span class="line">        <span class="attr">"match_all"</span>: &#123;&#125;</span><br><span class="line">    &#125;,</span><br><span class="line">    <span class="attr">"size"</span>: &lt;Value&gt;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><strong>範例</strong></p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">GET sport/basketball/_search</span><br><span class="line">&#123;</span><br><span class="line">    <span class="attr">"query"</span>:&#123;</span><br><span class="line">        <span class="attr">"match_all"</span>: &#123;&#125;</span><br><span class="line">    &#125;,</span><br><span class="line">    <span class="attr">"size"</span>: <span class="number">2</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>此外 size 也常常跟 from 一起搭配使用。例如 :</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">GET sport/basketball/_search</span><br><span class="line">&#123;</span><br><span class="line">    <span class="attr">"query"</span>:&#123;</span><br><span class="line">        <span class="attr">"match_all"</span>: &#123;&#125;</span><br><span class="line">    &#125;,</span><br><span class="line">    <span class="attr">"from"</span>: <span class="number">0</span>, </span><br><span class="line">    <span class="attr">"size"</span>: <span class="number">2</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="sort"><a class="header-anchor" href="#sort"></a>sort</h3>
+<p>sort 用於依照 Field 來排序，等同於 SQL 的 Order By。可以選擇 asc 或 desc。</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">GET &lt;Index&gt;/&lt;Type&gt;/_search</span><br><span class="line">&#123;</span><br><span class="line">    <span class="attr">"query"</span>:&#123;</span><br><span class="line">        <span class="attr">"match_all"</span>: &#123;&#125;</span><br><span class="line">    &#125;,</span><br><span class="line">    <span class="attr">"sort"</span>: [</span><br><span class="line">      &#123;</span><br><span class="line">        <span class="attr">"&lt;Field&gt;"</span>: &#123;</span><br><span class="line">          <span class="attr">"order"</span>: <span class="string">"&lt;asc|desc&gt;"</span></span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    ]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><strong>範例</strong></p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">GET sport/basketball/_search</span><br><span class="line">&#123;</span><br><span class="line">    <span class="attr">"query"</span>:&#123;</span><br><span class="line">        <span class="attr">"match_all"</span>: &#123;&#125;</span><br><span class="line">    &#125;,</span><br><span class="line">    <span class="attr">"sort"</span>: [</span><br><span class="line">      &#123;</span><br><span class="line">        <span class="attr">"champion"</span>: &#123;</span><br><span class="line">          <span class="attr">"order"</span>: <span class="string">"asc"</span></span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    ]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="source"><a class="header-anchor" href="#source"></a>_source</h3>
+<p>_source 可以指定要回傳的 Field，</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">GET &lt;Index&gt;/&lt;Type&gt;/_search</span><br><span class="line">&#123;</span><br><span class="line">    <span class="attr">"query"</span>:&#123;</span><br><span class="line">        <span class="attr">"match_all"</span>: &#123;&#125;</span><br><span class="line">    &#125;,</span><br><span class="line">    <span class="attr">"_source"</span>: [<span class="string">"&lt;Field&gt;"</span>, <span class="string">"&lt;Field&gt;"</span>, ...]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><strong>範例</strong></p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">GET sport/basketball/_search</span><br><span class="line">&#123;</span><br><span class="line">    <span class="attr">"query"</span>:&#123;</span><br><span class="line">        <span class="attr">"match_all"</span>: &#123;&#125;</span><br><span class="line">    &#125;,</span><br><span class="line">    <span class="attr">"_source"</span>: [<span class="string">"team"</span>, <span class="string">"champion"</span>]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="Summary"><a class="header-anchor" href="#Summary"></a>Summary</h2>
+<p>本篇介紹了介紹了如何查詢 Document。這些語法可以任意的組合出各種情況，要稍微適應 Elasticsearch 和關聯式資料庫的不同會需要一點時間。</p>
+<p><a href="https://tienyulin.github.io/elasticsearch-query-sql-xpack">下一篇</a> 將介紹除了用 DSL 進行查詢，Elasticsearch 還提供了以 SQL 語法來做查詢的功能。</p>
+<h2 id="參考"><a class="header-anchor" href="#參考"></a>參考</h2>
+<p>[1] <a href="https://blog.csdn.net/pony_maggie/article/details/106062284?utm_medium=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-5.channel_param&amp;depth_1-utm_source=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-5.channel_param" target="_blank" rel="noopener">ES系列之利用filter讓你的查詢效率飛起来</a><br>
+[2] <a href="https://segmentfault.com/a/1190000017110948" target="_blank" rel="noopener">要搞懂 Elasticsearch Match Query，看這篇就夠了</a><br>
+[3] <a href="https://www.cnblogs.com/yjf512/p/4897294.html" target="_blank" rel="noopener">elasticsearch 查詢（match和term）</a><br>
+[4] <a href="https://www.elastic.co/guide/cn/elasticsearch/guide/current/index.html" target="_blank" rel="noopener">Elasticsearch: 權威指南</a><br>
+[5] <a href="http://doc.codingdict.com/elasticsearch/" target="_blank" rel="noopener">Elasticsearch CodingDict</a><br>
+[6] <a href="https://www.itread01.com/content/1546464245.html" target="_blank" rel="noopener">ElasticSearch從入門到精通</a><br>
+[7] <a href="https://blog.csdn.net/UbuntuTouch/article/details/101287399" target="_blank" rel="noopener">Elasticsearch：fuzzy 搜索 （模糊搜索）</a><br>
+[8] <a href="https://www.twblogs.net/a/5d6676f8bd9eee5327feae8a" target="_blank" rel="noopener">Search API | 台部落</a><br>
+[9] <a href="https://kucw.github.io/blog/2018/6/elasticsearch-term-match/" target="_blank" rel="noopener">ElasticSearch - term 和 match 的差別</a></p>
+
+    </div>
+
+    
+    
+    
+      
+  <div class="popular-posts-header">系列文章</div>
+  <ul class="popular-posts">
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/elasticsearch-1_concept/" rel="bookmark">Elasticsearch (一) - 基本概念</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/elasticsearch-4_query-sql-xpack/" rel="bookmark">Elasticsearch (四) - 使用 SQL 語法進行查詢</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/elasticsearch-7_cluster-kibana-docker-compose/" rel="bookmark">Elasticsearch (七) - 多節點 Cluster 建立搭配 Kibana</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/elasticsearch-2_kibana-command-dsl-docker-compose/" rel="bookmark">Elasticsearch (二) - 快速搭建與 Document 的建立、更新和刪除</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/elasticsearch-5_analyzer/" rel="bookmark">Elasticsearch (五) - Analyzer 分析器</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/elasticsearch-6_aggregation/" rel="bookmark">Elasticsearch (六) - Aggregation 聚合</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/redis-2_key-command/" rel="bookmark">Redis (二) - Key 的管理與操作</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/redis-5_server-management/" rel="bookmark">Redis (五) - 管理 Redis Server</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/redis-3_pubsub/" rel="bookmark">Redis (三) - Pub/Sub 發佈訂閱</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/redis-1_concept-docker-install-datatype/" rel="bookmark">Redis (一) - 基本概念</a></div>
+    </li>
+  </ul>
+
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/tags/NoSQL/" rel="tag"><i class="fa fa-tag"></i> NoSQL</a>
+              <a href="/tags/Elasticsearch/" rel="tag"><i class="fa fa-tag"></i> Elasticsearch</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/elasticsearch-2_kibana-command-dsl-docker-compose/" rel="prev" title="Elasticsearch (二) - 快速搭建與 Document 的建立、更新和刪除">
+      <i class="fa fa-chevron-left"></i> Elasticsearch (二) - 快速搭建與 Document 的建立、更新和刪除
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/elasticsearch-4_query-sql-xpack/" rel="next" title="Elasticsearch (四) - 使用 SQL 語法進行查詢">
+      Elasticsearch (四) - 使用 SQL 語法進行查詢 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<!-- tienyulin.github -->
+<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-8271558544185929"
+     data-ad-slot="8611071932"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#查詢-Query-和過濾-Filter"><span class="nav-number">1.</span> <span class="nav-text">查詢 (Query) 和過濾 (Filter)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#查詢-Query"><span class="nav-number">2.</span> <span class="nav-text">查詢 (Query)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#match-all"><span class="nav-number">2.1.</span> <span class="nav-text">match_all</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#match"><span class="nav-number">2.2.</span> <span class="nav-text">match</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#multi-match"><span class="nav-number">2.3.</span> <span class="nav-text">multi_match</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#multi-phrase"><span class="nav-number">2.4.</span> <span class="nav-text">multi_phrase</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#multi-phrase-prefix"><span class="nav-number">2.5.</span> <span class="nav-text">multi_phrase_prefix</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#prefix"><span class="nav-number">2.6.</span> <span class="nav-text">prefix</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#wildcard"><span class="nav-number">2.7.</span> <span class="nav-text">wildcard</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#term"><span class="nav-number">2.8.</span> <span class="nav-text">term</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#terms"><span class="nav-number">2.9.</span> <span class="nav-text">terms</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#fuzzy"><span class="nav-number">2.10.</span> <span class="nav-text">fuzzy</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#bool-query"><span class="nav-number">2.11.</span> <span class="nav-text">bool query</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#range"><span class="nav-number">2.12.</span> <span class="nav-text">range</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#exists"><span class="nav-number">2.13.</span> <span class="nav-text">exists</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#過濾-Filter"><span class="nav-number">3.</span> <span class="nav-text">過濾 (Filter)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#bool-query-v2"><span class="nav-number">3.1.</span> <span class="nav-text">bool query</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#其他搭配參數"><span class="nav-number">4.</span> <span class="nav-text">其他搭配參數</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#from"><span class="nav-number">4.1.</span> <span class="nav-text">from</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#size"><span class="nav-number">4.2.</span> <span class="nav-text">size</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#sort"><span class="nav-number">4.3.</span> <span class="nav-text">sort</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#source"><span class="nav-number">4.4.</span> <span class="nav-text">_source</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Summary"><span class="nav-number">5.</span> <span class="nav-text">Summary</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#參考"><span class="nav-number">6.</span> <span class="nav-text">參考</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Tien-Yu Lin"
+      src="/images/tienyu.jpg">
+  <p class="site-author-name" itemprop="name">Tien-Yu Lin</p>
+  <div class="site-description" itemprop="description">Try not to become a man of success, but rather try to become a man of value. - Albert Einstein</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">45</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">28</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">29</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/tienyulin" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;tienyulin" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://hub.docker.com/u/tienyu" title="DockerHub → https:&#x2F;&#x2F;hub.docker.com&#x2F;u&#x2F;tienyu" rel="noopener" target="_blank"><i class="fab fa-docker fa-fw"></i>DockerHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:t.tienyulin@gmail.com" title="E-Mail → mailto:t.tienyulin@gmail.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.linkedin.com/in/tony-lin-79733714b/" title="Linkedin → https:&#x2F;&#x2F;www.linkedin.com&#x2F;in&#x2F;tony-lin-79733714b&#x2F;" rel="noopener" target="_blank"><i class="fab fa-linkedin fa-fw"></i>Linkedin</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+      <!--google_adsense-->	      
+      	 
+        <div class="links-of-blogroll-title">	     
+          <i class="fa fa-google"></i> AdSense	       
+          <ins class="adsbygoogle"	      
+              style="display:block"	     
+              data-ad-client="ca-pub-8271558544185929"	
+              data-ad-slot="8611071932"	
+              data-ad-format="auto"	
+              data-full-width-responsive="true"></ins>	
+          <script>	
+            (adsbygoogle = window.adsbygoogle || []).push({});	
+          </script>	
+        </div>	
+      	
+      <!--/google_adsense-->
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Tien-Yu Lin</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a>
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="Total Visitors">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="Total Views">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+  <script>
+    (function(){
+      var canonicalURL, curProtocol;
+      //Get the <link> tag
+      var x=document.getElementsByTagName("link");
+		//Find the last canonical URL
+		if(x.length > 0){
+			for (i=0;i<x.length;i++){
+				if(x[i].rel.toLowerCase() == 'canonical' && x[i].href){
+					canonicalURL=x[i].href;
+				}
+			}
+		}
+    //Get protocol
+	    if (!canonicalURL){
+	    	curProtocol = window.location.protocol.split(':')[0];
+	    }
+	    else{
+	    	curProtocol = canonicalURL.split(':')[0];
+	    }
+      //Get current URL if the canonical URL does not exist
+	    if (!canonicalURL) canonicalURL = window.location.href;
+	    //Assign script content. Replace current URL with the canonical URL
+      !function(){var e=/([http|https]:\/\/[a-zA-Z0-9\_\.]+\.baidu\.com)/gi,r=canonicalURL,t=document.referrer;if(!e.test(r)){var n=(String(curProtocol).toLowerCase() === 'https')?"https://sp0.baidu.com/9_Q4simg2RQJ8t7jm9iCKT-xh_/s.gif":"//api.share.baidu.com/s.gif";t?(n+="?r="+encodeURIComponent(document.referrer),r&&(n+="&l="+r)):r&&(n+="?l="+r);var i=new Image;i.src=n}}(window);})();
+  </script>
+
+
+
+
+  
+<script src="//cdn.jsdelivr.net/npm/algoliasearch@4/dist/algoliasearch-lite.umd.js"></script>
+<script src="//cdn.jsdelivr.net/npm/instantsearch.js@4/dist/instantsearch.production.min.js"></script>
+<script src="/js/algolia-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://tienyulin.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  var disqus_config = function() {
+    this.page.url = "https://tienyulin.github.io/elasticsearch-3_query-filter/";
+    this.page.identifier = "elasticsearch-3_query-filter/";
+    this.page.title = "Elasticsearch (三) - 查詢和過濾";
+    };
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: disqus_config
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://tienyulin.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>

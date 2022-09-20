@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="/lib/pace/pace-theme-bounce.min.css">
+  <script src="/lib/pace/pace.min.js"></script>
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"tienyulin.github.io","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"appID":"CKNGBQCM6Q","apiKey":"aa8f782cff7f67f246a3fd15f8592fc1","indexName":"tienyulin.github.com","hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="上一篇有提到 SSH 可以在使用者和客戶端之間建立一條安全的隧道 (tunnel) 來進行資料的傳輸，或者是存取到特定的服務。透過 SSH Tunnel 可以達到傳輸的加密或是網路和防火牆的穿透。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Linux (九) - SSH Tunnel 突破防火牆限制">
+<meta property="og:url" content="https://tienyulin.github.io/linux-9_ssh-tunnel/">
+<meta property="og:site_name" content="Tienyu Note">
+<meta property="og:description" content="上一篇有提到 SSH 可以在使用者和客戶端之間建立一條安全的隧道 (tunnel) 來進行資料的傳輸，或者是存取到特定的服務。透過 SSH Tunnel 可以達到傳輸的加密或是網路和防火牆的穿透。">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://raw.githubusercontent.com/facerecog/auto-ssh-tunnel/gh-pages/images/auto-ssh-tunnel%20logo.png">
+<meta property="article:published_time" content="2020-12-10T00:00:00.000Z">
+<meta property="article:modified_time" content="2020-12-10T00:00:00.000Z">
+<meta property="article:author" content="Tien-Yu Lin">
+<meta property="article:tag" content="Linux">
+<meta property="article:tag" content="SSH">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/facerecog/auto-ssh-tunnel/gh-pages/images/auto-ssh-tunnel%20logo.png">
+
+<link rel="canonical" href="https://tienyulin.github.io/linux-9_ssh-tunnel/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>Linux (九) - SSH Tunnel 突破防火牆限制 | Tienyu Note</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-169323232-1"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'UA-169323232-1');
+      }
+    </script>
+
+
+
+
+
+
+
+<script data-ad-client="ca-pub-8271558544185929" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Tienyu Note</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">Fly with me</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives<span class="badge">45</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-folder-open fa-fw"></i>Categories<span class="badge">28</span></a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags<span class="badge">29</span></a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-sitemap">
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-sitemap fa-fw"></i>Sitemap</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container"></div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="algolia-results">
+  <div id="algolia-stats"></div>
+  <div id="algolia-hits"></div>
+  <div id="algolia-pagination" class="algolia-pagination"></div>
+</div>
+
+      
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/tienyulin" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="https://tienyulin.github.io/linux-9_ssh-tunnel/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/tienyu.jpg">
+      <meta itemprop="name" content="Tien-Yu Lin">
+      <meta itemprop="description" content="Try not to become a man of success, but rather try to become a man of value. - Albert Einstein">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Tienyu Note">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Linux (九) - SSH Tunnel 突破防火牆限制
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2020-12-10 00:00:00" itemprop="dateCreated datePublished" datetime="2020-12-10T00:00:00+00:00">2020-12-10</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Linux/" itemprop="url" rel="index"><span itemprop="name">Linux</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Linux/SSH/" itemprop="url" rel="index"><span itemprop="name">SSH</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="Views" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">Views: </span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus: </span>
+    
+    <a title="disqus" href="/linux-9_ssh-tunnel/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="linux-9_ssh-tunnel/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p><img src="https://raw.githubusercontent.com/facerecog/auto-ssh-tunnel/gh-pages/images/auto-ssh-tunnel%20logo.png" alt="Tunnel" width="200" height="200"></p>
+<p>上一篇有提到 SSH 可以在使用者和客戶端之間建立一條安全的隧道 (tunnel) 來進行資料的傳輸，或者是存取到特定的服務。透過 SSH Tunnel 可以達到傳輸的加密或是網路和防火牆的穿透。</p>
+<a id="more"></a>
+<p>舉例來說，我有一台電腦 A 不能對外連線，有一台伺服器 B 可以對外連線，而電腦 A 是可以連線到伺服器 B 的，這時就可以在 A 和 B 之間建立 Tunnel 並將 A 要做的事情轉傳給 B，讓 B 幫忙連到外網完成。這樣的概念類似於 <code>Port Forwarding</code> 或是 <code>Proxy</code>。</p>
+<p>SSH Tunnel 可以分為以下幾種 :</p>
+<ul>
+<li>Local Tunnel (Local Forwarding)</li>
+<li>Remote Tunnel (Remote Forwarding)</li>
+<li>Dynamic Tunnel (Dynamic Forwarding)</li>
+</ul>
+<h2 id="Local-Tunnel"><a class="header-anchor" href="#Local-Tunnel"></a>Local Tunnel</h2>
+<p>Local Tunnel 會從 Client 端將特定服務的流量透過 SSH 傳送給 Server 端 (Remote)，再透過 Server 端將流量導向到 <code>特定</code> 的 Host 上的 Port。</p>
+<p>舉例來說，電腦 A 會先打開一個 port，伺服器 B 也會打開一個 port (也就是 SSH 預設的 port 22)，電腦 A 會打通一條隧道到伺服器 B 的 port，並且在建立隧道時也會和伺服器 B 約定好當我傳送 Request 過去時，你要幫我把這個 Request 再傳給誰，這個誰有可能是伺服器 B 本身的 port 或是另一個伺服器 C 上的 port。</p>
+<p>再說的生活化一點，當我的電腦因為受到防火牆的限制而不能連到 google 時且 SSH 連線並沒有被禁止，我就可以從我的電腦上送出一個 Request 到另一台可以連到 google 的伺服器，這台伺服器就可以幫我連到 google 再回傳結果給我。</p>
+<!-- ![image alt](https://www.tunnelsup.com/images/ssh-local1.png) -->
+<p>下面我們來看一下建立 Local Tunnel 的指令，這個指令要在自己的電腦上執行 :</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ ssh -NfL &lt;<span class="built_in">local</span> ip&gt;:&lt;<span class="built_in">local</span> port&gt;:&lt;host ip&gt;:&lt;host port&gt; &lt;user&gt;@&lt;remote server ip&gt;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>-N : 不要另外開啟一個 Shell。</li>
+<li>-f : 在背景執行。</li>
+<li>-L : 代表要建立 Local Tunnel。</li>
+<li>local ip : 選填，通常是可以不填，就是綁定本機。</li>
+<li>local port : 本機的 port，盡量選大於 5000。</li>
+<li>host ip : 要連接的服務的 ip 或是 domain name，若是遠端 SSH Server 上的服務可以用 <code>localhost</code> 或 <code>127.0.0.1</code>。</li>
+<li>host port : 要連接的服務的 port。</li>
+</ul>
+<h3 id="範例"><a class="header-anchor" href="#範例"></a>範例</h3>
+<h4 id="1-連線到被防火牆擋下的外部服務"><a class="header-anchor" href="#1-連線到被防火牆擋下的外部服務"></a>1. 連線到被防火牆擋下的外部服務</h4>
+<p>這個範例是本機要連到 <code>facebook.com</code>，但是可能是公司網路的防火牆將 <code>facebook.com</code> 擋住了，這時候就可以就建立一個 Local Tunnel 來讓外部的一台 Server 幫忙連線。</p>
+<p>在建立 tunnel 之前要先在 <code>外部 Server</code> 上打開對應的 port 打開，這裡我們用 <code>6588</code> port。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">$ sudo firewall-cmd --add-port=6588/tcp --permanent</span><br><span class="line">success</span><br><span class="line"></span><br><span class="line">$ sudo firewall-cmd --reload</span><br><span class="line">success</span><br><span class="line"></span><br><span class="line">$ sudo firewall-cmd --zone=public --list-all</span><br><span class="line">public</span><br><span class="line">  target: default</span><br><span class="line">  icmp-block-inversion: no</span><br><span class="line">  interfaces: </span><br><span class="line">  sources: </span><br><span class="line">  services: dhcpv6-client ssh</span><br><span class="line">  ports: 6588/tcp </span><br><span class="line">  protocols: </span><br><span class="line">  masquerade: no</span><br><span class="line">  forward-ports: </span><br><span class="line">  <span class="built_in">source</span>-ports: </span><br><span class="line">  icmp-blocks: </span><br><span class="line">  rich rules:</span><br></pre></td></tr></table></figure>
+<p>接著要在 <code>自己的電腦</code> 上執行以下指令，這個例子是當透過本機的 <code>6588</code> port 將 Request 傳送到 <a href="http://server.foo.com" target="_blank" rel="noopener">server.foo.com</a> 這個 Server 時，Server 會把 Request 導向到 <code>facebook.com</code> 的 <code>80</code> port，最後將結果回傳到本機的 <code>6588</code> port。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 建立 Local Tunnel</span></span><br><span class="line">$ ssh -NfL 6588:facebook.com:80 user@server.foo.com</span><br></pre></td></tr></table></figure>
+<p>這時候打開瀏覽器輸入 <code>http://localhost:6588</code> 就可以連到 facebook 了。</p>
+<h4 id="2-連線到被防火牆擋下的遠端伺服器上的服務"><a class="header-anchor" href="#2-連線到被防火牆擋下的遠端伺服器上的服務"></a>2. 連線到被防火牆擋下的遠端伺服器上的服務</h4>
+<p>這個範例是要連到遠端 Server 上的服務，這個概念就比較簡單了。連到了遠端的 Server 上後，Server 會將 Request 導向到對應的 port，接著再回傳結果。</p>
+<p>接著要在 <code>自己的電腦</code> 上執行以下指令，下面這個例子是當透過本機的 <code>6588</code> port 將 Request 傳送到 <a href="http://server.foo.com" target="_blank" rel="noopener">server.foo.com</a> 這個 Server 時，Server 會把 Request 導向到 <code>7520</code> 這個 port。這個 port 可能是對應到一個網頁或是一支 API 等等，接著再將結果回傳。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 建立 Local Tunnel</span></span><br><span class="line">$ ssh -NfL 6588:localhost:7520 user@server.foo.com</span><br></pre></td></tr></table></figure>
+<p>這時候同樣打開瀏覽器輸入 <code>http://localhost:6588</code> 就可以連到這項服務了。</p>
+<h2 id="Remote-Tunnel"><a class="header-anchor" href="#Remote-Tunnel"></a>Remote Tunnel</h2>
+<p>Remote Tunnel 會從 Server 端 (Remote) 將特定服務的流量透過 SSH 傳送給 Client 端 (Local)。</p>
+<p>舉例來說，我有一台電腦 A 放在家裡沒有固定開放的 IP，但我有一台 AWS 雲端伺服器 B 有固定開放的 IP。如果我想要從外面連回到家裡的電腦，在沒有開放的 IP 的情況下通常是不行的，因為你並沒有辦法明確的指出你要連到誰。</p>
+<p>這時候 SSH Tunnel 就可以透過建立 <code>反向隧道</code> 的方式來突破這個限制以達到內網穿透。Remote Tunnel 的概念是，既然外網機器不知道內網機器的 IP，那就反過來由內網機器主動連線到外網機器，並且建立這條隧道，所以稱為 <code>反向隧道</code>。</p>
+<p>透過建立反向隧道，外網機器和內網機器就有一條連通的溝通管道了，這時就可以透過另一台電腦先連線到外網機器，再讓外網機器利用反向隧道將訊息傳送到內網的機器。</p>
+<!-- ![Remote Tunnel](https://www.tunnelsup.com/images/ssh-remote.png) -->
+<p>下面我們來看一下建立 Remote Tunnel 的指令，這個指令要在內網的機器上執行 :</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ ssh -NfR &lt;host ip&gt;:&lt;host port&gt;:&lt;<span class="built_in">local</span> ip&gt;:&lt;<span class="built_in">local</span> port&gt; &lt;user&gt;@&lt;remote server ip&gt;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>-N : 不要另外開啟一個 Shell。</li>
+<li>-f : 在背景執行。</li>
+<li>-R : 代表要建立 Remote Tunnel。</li>
+<li>host ip : 外網機器的 ip 或是 domain name，可以不填，因為 ssh 本身就需要指定連線對象的 ip，也就是指令中的 <code>remote server ip</code>。</li>
+<li>host port : 外網機器要開放的 port，也就是當連到外網機器的這個 port，Request 就會透過這條反向隧道送到內網的機器。</li>
+<li>local ip : 可以用 <code>localhost</code> 或 <code>127.0.0.1</code>，就是綁定內網這台機器。</li>
+<li>local port : 內網這台機器的 port，對應到各項服務，SSH 預設值就是 22。</li>
+</ul>
+<h3 id="範例-v2"><a class="header-anchor" href="#範例-v2"></a>範例</h3>
+<p>同樣的在建立 tunnel 前要先在 <code>外網機器</code> 上打開對應的 port，這裡我們用 <code>7020</code> port。作法請參考 Local Tunnel 的介紹。</p>
+<p>接著要在 <code>內網機器</code> 上執行以下指令，這個範例是要建立一個 Remote Tunnel 在一台外網機器和一台內網機器之間，可以看到這裡指定的主機是 <code>server.foo.com</code>，而外網機器開放了 <code>7020</code> 這個 port，所以當連線到 <code>server.foo.com</code> 的 <code>7020</code> port 時，就會自動將 Request 導向到內網的機器。而這裡導向到的是內網機器的 <code>22</code> port，也就是 SSH 的 port。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ ssh -NfR 7020:localhost:22 user@server.foo.com</span><br></pre></td></tr></table></figure>
+<p>建立完成後在 <code>外網機器</code> 上執行以下指令，可以看到外網機器上的 <code>7020</code> port 已經開始監聽了。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ sudo netstat -antp | grep 7020</span><br><span class="line">tcp        0      0 0.0.0.0:7020            0.0.0.0:*               LISTEN      19102/sshd: opc     </span><br><span class="line">tcp6       0      0 :::7020                 :::*</span><br></pre></td></tr></table></figure>
+<p>如此一來我們就可以使用第三方的電腦，透過 <code>server.foo.com</code> 的 <code>7020</code> port 來和內網的機器建立 SSH 的連線了。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ ssh user@server.foo.com -p 7020</span><br></pre></td></tr></table></figure>
+<h2 id="Dynamic-Tunnel"><a class="header-anchor" href="#Dynamic-Tunnel"></a>Dynamic Tunnel</h2>
+<p>Dynamic Tunnel 會從 Client 端將特定服務的流量透過 SSH 傳送給 Server 端 (Remote)，再透過 Server 端將流量導向到 <code>非特定</code> 的 Host 上的 Port。</p>
+<p>從前面的定義可以發現 Dynamic Tunnel 和 Local Tunnel 流量導向的方向是一樣的，差別在於 Dynamic Tunnel 會導向到 <code>非特定</code> 的 Host 上的 Port，而 Local Tunnel 是導向到 <code>特定</code> 的 Host 上的 Port。</p>
+<p>首先，什麼是 <code>特定</code> 的 Host 上的 Port ? Local Tunnel 會指定當流量通過這條隧道後最終要去的目的地，所以不管傳進來的 Request 是什麼，通通都會導向到一樣的目的地。</p>
+<p>而 <code>非特定</code> 的意思是 Dynamic Tunnel 並不會指定流量通過隧道後的目的地，這條隧道的用意只是要讓 Request 可以流向到遠端的 Server 上，再讓遠端的 Server 作為一個代理伺服器 (SOCKS proxy) 將 Request 送出去，透過這樣的作法來突破防火牆的限制。</p>
+<p>Dynamic Tunnel 的概念類似於 VPN，先連到另一台可以對外連線的機器，再讓這台機器幫我對外傳送和接收訊息。</p>
+<p>下面我們來看一下建立 Dynamic Tunnel 的指令，這個指令要在本機上執行 :</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ ssh -NfD &lt;<span class="built_in">local</span> ip&gt;:&lt;<span class="built_in">local</span> port&gt; &lt;user&gt;@&lt;remote server ip&gt;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>-N : 不要另外開啟一個 Shell。</li>
+<li>-f : 在背景執行。</li>
+<li>-D : 代表要建立 Dynamic Tunnel。</li>
+<li>local ip : 可以用 <code>localhost</code> 或 <code>127.0.0.1</code> 或是不填，就是綁定這台機器。</li>
+<li>local port : 本機上的 port，當本機的流量導向到這個 port 時就會通過這條隧道送到 Server。</li>
+</ul>
+<h3 id="範例-v3"><a class="header-anchor" href="#範例-v3"></a>範例</h3>
+<p>首先在本機上執行以下指令，這個指令代表當本機上有服務將流量導向到 <code>8500</code> port 時，就會將這個流量送進隧道中導向到 <code>server.foo.com</code> 這台 Server 上。接著這台 Server 就會再將接收到的 Request 傳送出去，並將結果送回到來。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ ssh -NfD 8500 user@server.foo.com</span><br></pre></td></tr></table></figure>
+<p>當 Dynamic Tunnel 建好後，我們就可以透過 SOCKS 代理伺服器來執行了。這裡以 Chrome 舉例。</p>
+<ul>
+<li>Linux/Windows 的用戶在 Chrome 的捷徑上按右鍵選擇內容，接著將以下設定加在目標的後面。</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">--proxy-server=<span class="string">"socks5://localhost:2323"</span></span><br></pre></td></tr></table></figure>
+<ul>
+<li>macOS 的用戶使用 terminal 輸入以下指令方式開啟 Chrome。</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">open -a <span class="string">"Google Chrome"</span> --args --proxy-server=<span class="string">"socks5://localhost:2323"</span></span><br></pre></td></tr></table></figure>
+<p>macOS 的用戶可以詳見參考 8 這篇文章，直接設定將所有流量導向到代理伺服器上。</p>
+<h2 id="autossh"><a class="header-anchor" href="#autossh"></a>autossh</h2>
+<p>SSH Tunnel 建立一段時間之後可能會突然斷線，這時就可以安裝 <code>autossh</code> 來取代 <code>ssh</code>。<code>autossh</code> 會在斷線時自動重新進行連線，以確保連線正常。</p>
+<p>而 <code>autossh</code> 的指令承襲了 <code>ssh</code>，所以可以直接將指令中的 <code>ssh</code> 替換成 <code>autossh</code> 就好了。不過 <code>autossh</code> 還提供了一個參數 <code>-M</code> 來建立讓本機上的一個 port 來監聽連線狀況，如下 :</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ autossh -M 6020 ...</span><br></pre></td></tr></table></figure>
+<h2 id="Summary"><a class="header-anchor" href="#Summary"></a>Summary</h2>
+<p>SSH 除了上一篇所介紹大家最常拿來連線到伺服器的操作外，Tunnel 才是他最強大的功能，在 Tunnel 中所有的訊息都是加密的。除非真的發生上一篇所介紹的 <code>中間人攻擊</code>，不然基本上完全可以不用擔心。</p>
+<p>不過上述的前提都是本機上要可以執行 ssh 並且連的出去，有些人想要在公司建 SSH Tunnel 出去來突破公司的防火牆，只要 SSH 的 Port 沒有被禁用就可以，如果被禁用了，那你還是乖乖的使用內網吧。</p>
+<h2 id="參考"><a class="header-anchor" href="#參考"></a>參考</h2>
+<p>[1] <a href="https://blog.johnsonlu.org/ssh-tunnel/" target="_blank" rel="noopener">SSH Tunnel</a><br>
+[2] <a href="https://xenby.com/b/269-%E6%95%99%E5%AD%B8-%E9%80%8F%E9%81%8E-ssh-tunnel-%E5%B0%87%E4%BC%BA%E6%9C%8D%E5%99%A8%E5%85%A7%E9%83%A8%E6%9C%8D%E5%8B%99%E7%B6%81%E5%AE%9A%E5%88%B0%E6%9C%AC%E6%A9%9F%E9%9B%BB%E8%85%A6%E4%B8%8A" target="_blank" rel="noopener">[教學] 透過 SSH Tunnel 將伺服器內部服務綁定到本機電腦上</a><br>
+[3] <a href="https://plu.one/devops/2018/09/22/ssh-tunnel/" target="_blank" rel="noopener">ssh-tunnel原理及其使用</a><br>
+[4] <a href="https://pohsienshih.github.io/2019/SSH-Tunnel-Introduction/" target="_blank" rel="noopener">SSH Tunnel介紹</a><br>
+[5] <a href="https://better-coding.com/ssh-tunnelling-the-power-of-simplicity/" target="_blank" rel="noopener">The power of SSH tunnelling – Simple guide with drawings and examples</a><br>
+[6] <a href="https://superuser.com/questions/408031/differences-between-ssh-l-to-d" target="_blank" rel="noopener">Differences between ssh -L to -D</a><br>
+[7] <a href="https://serverfault.com/questions/272754/what-is-the-difference-between-local-remote-dynamic-ssh-tunneling/272762" target="_blank" rel="noopener">What is the difference between Local/Remote/Dynamic SSH tunneling?</a><br>
+[8] <a href="https://myapollo.com.tw/zh-tw/ssh-socks-proxy-server/" target="_blank" rel="noopener">利用遠端 SSH 伺服器架設 SOCKS 代理伺服器(Proxy Server)保護網路傳輸內容</a><br>
+[9] <a href="https://newtoypia.blogspot.com/2016/08/reverse-ssh-tunneling.html" target="_blank" rel="noopener">鑿一個反向 ssh 隧道， 對朋友或世界展示筆電或家裡的某個服務</a><br>
+[10] <a href="https://www.phase2technology.com/blog/multiple-ssh-tunnels" target="_blank" rel="noopener">Multiple SSH Tunnels</a></p>
+
+    </div>
+
+    
+    
+    
+      
+  <div class="popular-posts-header">系列文章</div>
+  <ul class="popular-posts">
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/linux-8_ssh/" rel="bookmark">Linux (八) - SSH 安全加密連線</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/linux-12_shell-script-1/" rel="bookmark">Linux (十二) - Shell Script 的撰寫 I</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/linux-3_file-chgrp-chown-chmod/" rel="bookmark">Linux (三) - 檔案的基本屬性與權限</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/linux-5_disk-management/" rel="bookmark">Linux (五) - 硬碟管理</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/linux-7_pipe/" rel="bookmark">Linux (七) - 管線命令 (pipe)</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/linux-10_shell-basic-concept/" rel="bookmark">Linux (十) - Shell 的基本概念和操作</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/linux-11_shell-variable/" rel="bookmark">Linux (十一) - Shell 的變數設定</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/linux-1_basic-concept-command/" rel="bookmark">Linux (一) - 基本概念與系統操作</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/linux-2_filesystem/" rel="bookmark">Linux (二) - 檔案系統架構</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/linux-4_file-directory-operation/" rel="bookmark">Linux (四) - 檔案與目錄操作</a></div>
+    </li>
+  </ul>
+
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/tags/Linux/" rel="tag"><i class="fa fa-tag"></i> Linux</a>
+              <a href="/tags/SSH/" rel="tag"><i class="fa fa-tag"></i> SSH</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/linux-8_ssh/" rel="prev" title="Linux (八) - SSH 安全加密連線">
+      <i class="fa fa-chevron-left"></i> Linux (八) - SSH 安全加密連線
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/linux-10_shell-basic-concept/" rel="next" title="Linux (十) - Shell 的基本概念和操作">
+      Linux (十) - Shell 的基本概念和操作 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<!-- tienyulin.github -->
+<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-8271558544185929"
+     data-ad-slot="8611071932"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Local-Tunnel"><span class="nav-number">1.</span> <span class="nav-text">Local Tunnel</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#範例"><span class="nav-number">1.1.</span> <span class="nav-text">範例</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-連線到被防火牆擋下的外部服務"><span class="nav-number">1.1.1.</span> <span class="nav-text">1. 連線到被防火牆擋下的外部服務</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-連線到被防火牆擋下的遠端伺服器上的服務"><span class="nav-number">1.1.2.</span> <span class="nav-text">2. 連線到被防火牆擋下的遠端伺服器上的服務</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Remote-Tunnel"><span class="nav-number">2.</span> <span class="nav-text">Remote Tunnel</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#範例-v2"><span class="nav-number">2.1.</span> <span class="nav-text">範例</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Dynamic-Tunnel"><span class="nav-number">3.</span> <span class="nav-text">Dynamic Tunnel</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#範例-v3"><span class="nav-number">3.1.</span> <span class="nav-text">範例</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#autossh"><span class="nav-number">4.</span> <span class="nav-text">autossh</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Summary"><span class="nav-number">5.</span> <span class="nav-text">Summary</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#參考"><span class="nav-number">6.</span> <span class="nav-text">參考</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Tien-Yu Lin"
+      src="/images/tienyu.jpg">
+  <p class="site-author-name" itemprop="name">Tien-Yu Lin</p>
+  <div class="site-description" itemprop="description">Try not to become a man of success, but rather try to become a man of value. - Albert Einstein</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">45</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">28</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">29</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/tienyulin" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;tienyulin" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://hub.docker.com/u/tienyu" title="DockerHub → https:&#x2F;&#x2F;hub.docker.com&#x2F;u&#x2F;tienyu" rel="noopener" target="_blank"><i class="fab fa-docker fa-fw"></i>DockerHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:t.tienyulin@gmail.com" title="E-Mail → mailto:t.tienyulin@gmail.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.linkedin.com/in/tony-lin-79733714b/" title="Linkedin → https:&#x2F;&#x2F;www.linkedin.com&#x2F;in&#x2F;tony-lin-79733714b&#x2F;" rel="noopener" target="_blank"><i class="fab fa-linkedin fa-fw"></i>Linkedin</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+      <!--google_adsense-->	      
+      	 
+        <div class="links-of-blogroll-title">	     
+          <i class="fa fa-google"></i> AdSense	       
+          <ins class="adsbygoogle"	      
+              style="display:block"	     
+              data-ad-client="ca-pub-8271558544185929"	
+              data-ad-slot="8611071932"	
+              data-ad-format="auto"	
+              data-full-width-responsive="true"></ins>	
+          <script>	
+            (adsbygoogle = window.adsbygoogle || []).push({});	
+          </script>	
+        </div>	
+      	
+      <!--/google_adsense-->
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Tien-Yu Lin</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a>
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="Total Visitors">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="Total Views">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+  <script>
+    (function(){
+      var canonicalURL, curProtocol;
+      //Get the <link> tag
+      var x=document.getElementsByTagName("link");
+		//Find the last canonical URL
+		if(x.length > 0){
+			for (i=0;i<x.length;i++){
+				if(x[i].rel.toLowerCase() == 'canonical' && x[i].href){
+					canonicalURL=x[i].href;
+				}
+			}
+		}
+    //Get protocol
+	    if (!canonicalURL){
+	    	curProtocol = window.location.protocol.split(':')[0];
+	    }
+	    else{
+	    	curProtocol = canonicalURL.split(':')[0];
+	    }
+      //Get current URL if the canonical URL does not exist
+	    if (!canonicalURL) canonicalURL = window.location.href;
+	    //Assign script content. Replace current URL with the canonical URL
+      !function(){var e=/([http|https]:\/\/[a-zA-Z0-9\_\.]+\.baidu\.com)/gi,r=canonicalURL,t=document.referrer;if(!e.test(r)){var n=(String(curProtocol).toLowerCase() === 'https')?"https://sp0.baidu.com/9_Q4simg2RQJ8t7jm9iCKT-xh_/s.gif":"//api.share.baidu.com/s.gif";t?(n+="?r="+encodeURIComponent(document.referrer),r&&(n+="&l="+r)):r&&(n+="?l="+r);var i=new Image;i.src=n}}(window);})();
+  </script>
+
+
+
+
+  
+<script src="//cdn.jsdelivr.net/npm/algoliasearch@4/dist/algoliasearch-lite.umd.js"></script>
+<script src="//cdn.jsdelivr.net/npm/instantsearch.js@4/dist/instantsearch.production.min.js"></script>
+<script src="/js/algolia-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://tienyulin.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  var disqus_config = function() {
+    this.page.url = "https://tienyulin.github.io/linux-9_ssh-tunnel/";
+    this.page.identifier = "linux-9_ssh-tunnel/";
+    this.page.title = "Linux (九) - SSH Tunnel 突破防火牆限制";
+    };
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: disqus_config
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://tienyulin.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>

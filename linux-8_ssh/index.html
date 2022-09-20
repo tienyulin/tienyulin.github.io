@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="/lib/pace/pace-theme-bounce.min.css">
+  <script src="/lib/pace/pace.min.js"></script>
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"tienyulin.github.io","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"appID":"CKNGBQCM6Q","apiKey":"aa8f782cff7f67f246a3fd15f8592fc1","indexName":"tienyulin.github.com","hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="SSH 全名是 Secure Shell (安全外殼協定)，是一種加密的網路傳輸協定，可以在不安全的網路中提供安全的網路傳輸環境。SSH 透過在使用者和客戶端之間建立一條安全的隧道來實現連接，並進行資料的傳輸。SSH 現今最常被使用的是進行遠端連線執行命令。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Linux (八) - SSH 安全加密連線">
+<meta property="og:url" content="https://tienyulin.github.io/linux-8_ssh/">
+<meta property="og:site_name" content="Tienyu Note">
+<meta property="og:description" content="SSH 全名是 Secure Shell (安全外殼協定)，是一種加密的網路傳輸協定，可以在不安全的網路中提供安全的網路傳輸環境。SSH 透過在使用者和客戶端之間建立一條安全的隧道來實現連接，並進行資料的傳輸。SSH 現今最常被使用的是進行遠端連線執行命令。">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://i.gyazo.com/thumb/1000/2dc61abc53d81f16581d0c992674d8b2-png.png">
+<meta property="article:published_time" content="2020-10-22T00:00:00.000Z">
+<meta property="article:modified_time" content="2020-10-22T00:00:00.000Z">
+<meta property="article:author" content="Tien-Yu Lin">
+<meta property="article:tag" content="Linux">
+<meta property="article:tag" content="SSH">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://i.gyazo.com/thumb/1000/2dc61abc53d81f16581d0c992674d8b2-png.png">
+
+<link rel="canonical" href="https://tienyulin.github.io/linux-8_ssh/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>Linux (八) - SSH 安全加密連線 | Tienyu Note</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-169323232-1"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'UA-169323232-1');
+      }
+    </script>
+
+
+
+
+
+
+
+<script data-ad-client="ca-pub-8271558544185929" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Tienyu Note</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">Fly with me</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives<span class="badge">45</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-folder-open fa-fw"></i>Categories<span class="badge">28</span></a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags<span class="badge">29</span></a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-sitemap">
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-sitemap fa-fw"></i>Sitemap</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container"></div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="algolia-results">
+  <div id="algolia-stats"></div>
+  <div id="algolia-hits"></div>
+  <div id="algolia-pagination" class="algolia-pagination"></div>
+</div>
+
+      
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/tienyulin" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="https://tienyulin.github.io/linux-8_ssh/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/tienyu.jpg">
+      <meta itemprop="name" content="Tien-Yu Lin">
+      <meta itemprop="description" content="Try not to become a man of success, but rather try to become a man of value. - Albert Einstein">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Tienyu Note">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Linux (八) - SSH 安全加密連線
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2020-10-22 00:00:00" itemprop="dateCreated datePublished" datetime="2020-10-22T00:00:00+00:00">2020-10-22</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Linux/" itemprop="url" rel="index"><span itemprop="name">Linux</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Linux/SSH/" itemprop="url" rel="index"><span itemprop="name">SSH</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="Views" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">Views: </span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus: </span>
+    
+    <a title="disqus" href="/linux-8_ssh/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="linux-8_ssh/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p><img src="https://i.gyazo.com/thumb/1000/2dc61abc53d81f16581d0c992674d8b2-png.png" alt="SSH"><br>
+SSH 全名是 Secure Shell (安全外殼協定)，是一種加密的網路傳輸協定，可以在不安全的網路中提供安全的網路傳輸環境。SSH 透過在使用者和客戶端之間建立一條安全的隧道來實現連接，並進行資料的傳輸。SSH 現今最常被使用的是進行遠端連線執行命令。</p>
+<a id="more"></a>
+<h2 id="加密方式"><a class="header-anchor" href="#加密方式"></a>加密方式</h2>
+<p>SSH 採用 <code>Public-key cryptography</code> 來為資料進行加解密，每一個使用者都會有兩把鑰匙 (key) :</p>
+<ul>
+<li>公鑰 (public key) : 任何人都可以看到公鑰的內容，主要用於加密。</li>
+<li>私鑰 (private key) : 私鑰只有擁有者自己擁有不會傳給別人，主要用於解密和數位簽章。</li>
+</ul>
+<p>通過公鑰將資料進行加密後，可以很輕易的用私鑰解密，而如果想要用公鑰來猜私鑰就會非常困難。這就是所謂的 <code>非對稱式加密</code>，透過不同的兩把鑰匙來分別作加解密，又因為私鑰握在自己手上所以不用擔心在傳輸過程中被攔截。</p>
+<h3 id="數位簽章"><a class="header-anchor" href="#數位簽章"></a>數位簽章</h3>
+<p>前面提到公鑰是任何人都可以看到的，那這樣每個人都可以用這把公鑰將資料加密再傳給同一個人，這樣要如何確定這封訊息是誰傳給我的 ? 是否是偽造的訊息呢 ?</p>
+<p>因此數位簽章的概念是先將資料透過雜湊函數產生雜湊值，接著再用自己的私鑰將雜湊值加密，並且連同原本加密的資料一起傳送。產生雜湊值的動作是單向的，所以不用擔心會被反向破解出原本的資料。</p>
+<p>當對方收到加密資料和數位簽章之後就可以用我的公鑰解出雜湊值，接著再用他自己的私鑰解出加密的資料。此時再將解密後的資料透過雜湊函數產生雜湊值，並和數位簽章解出的雜湊值進行比對，如果一樣則代表這則訊息是我本人傳送的。</p>
+<h3 id="運作流程"><a class="header-anchor" href="#運作流程"></a>運作流程</h3>
+<ol>
+<li>在進行資料傳輸前， A 和 B 雙方都要先生成一組公私鑰。</li>
+<li>將公鑰傳給對方，此時 A 有自己的私鑰和 B 的公鑰，B 有自己的私鑰和 A 的公鑰。</li>
+<li>現在當 A 要傳資料給 B 就用 B 的公鑰將資料加密，並且用 A 自己的私鑰將資料進行數位簽章，接著將加密資料和數位簽章一起傳給 B。</li>
+<li>當 B 收到後先透過 A 的公鑰解出數位簽章，接著再用 B 自己的私鑰解出加密的資料。</li>
+<li>比對數位簽章的雜湊值和解密的資料經過雜湊函數所產生的雜湊值是否相同即可確認資料的真實性。</li>
+</ol>
+<h3 id="中間人攻擊-Man-in-the-middle-attack"><a class="header-anchor" href="#中間人攻擊-Man-in-the-middle-attack"></a>中間人攻擊 (Man-in-the-middle attack)</h3>
+<p>雖然看起來上述加了數位簽章之後安全性已經提高了許多，但是公鑰在傳輸的過程中如果在中途被駭客攔截，那駭客就可以發送一組假的公鑰給對方並且解開資料進行偽造。如下 :</p>
+<ol>
+<li>A 生成了一組公私鑰，並且準備將公鑰傳送給 B。</li>
+<li>A 傳送的過程中被駭客 H 在中途攔截，此時駭客 H 就再生成了一組 <code>公私鑰 (pubH1、priH1)</code> 並將這組 <code>假的公鑰 (pubH1)</code> 傳送給 B。而 B 就以為 <code>pubH1</code> 是 A 的公鑰。</li>
+<li>同樣 B 生成公私鑰後要傳送公鑰給 A 時在中途被駭客 H 攔截，駭客 H 就再生成了一組 <code>公私鑰 (pubH2、priH2)</code> 並將這組 <code>假的公鑰 (pubH2)</code> 傳送給 A。而 A 就以為 <code>pubH2</code> 是 B 的公鑰。</li>
+<li>現在當 A 要傳送訊息時用了 <code>假的 B 公鑰 (pubH2)</code> 加密資料再用 A 自己的私鑰加密數位簽章，接著準備傳送給 B。</li>
+<li>傳送過程中被駭客 H 在中途攔截，此時資料因為是用 <code>pubH2</code> 加密，而駭客 H 因為擁有 <code>priH2</code> 所以就可以將加密的資料進行解密。</li>
+<li>此時駭客 H 就可以任意更改資料內容，並且再用 <code>B 的公鑰</code> 將資料進行加密，接著透過 <code>priH1</code> 這組私鑰進行數位簽章，最後就可以將這組偽造的資料傳送給 B。</li>
+<li>當 B 收到加密的資料和數位簽章時，會先用自己的私鑰將資料進行解密，這部分是沒有問題的因為駭客 H 是用 <code>B 的公鑰</code> 進行加密。接著 B 會再用他以為是 A 的公鑰的<code>pubH1</code> 解出數位簽章，最後比對結果吻合就認定是 A 傳送的訊息。</li>
+</ol>
+<h3 id="第三方認證公鑰"><a class="header-anchor" href="#第三方認證公鑰"></a>第三方認證公鑰</h3>
+<p>非對稱式協議唯一會產生的問題就是交換公鑰時有可能被偷換過，不過解法其實也很簡單，就是透過一個可信的第三方服務來認證拿到的公鑰是不是真的，這樣就可以確定公鑰有沒有問題。</p>
+<h2 id="基本操作方式"><a class="header-anchor" href="#基本操作方式"></a>基本操作方式</h2>
+<p>如果要使用 SSH 連線到另一台 Linux 伺服器，可以透過 SSH 指令進行連接，如下 :</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ssh [user]@[host]</span><br></pre></td></tr></table></figure>
+<p>user : 要登入的帳號名稱。<br>
+host : 遠端主機的名稱或 IP 位址。</p>
+<p>登入時預設要使用帳號的密碼進行認證才能登入。</p>
+<p><strong>範例</strong><br>
+下面這個範例是要連線到 <code>192.168.0.100</code> 這個 IP 位址的主機並且用 <code>tony</code> 這個帳號進行登入。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ ssh tony@192.168.0.100</span><br></pre></td></tr></table></figure>
+<p>而如果本機的使用者帳號和遠端登入的是同一個帳號名稱則可以不需要指定 <code>user</code>，如下 :</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">tony@mycomputer$ ssh 192.168.0.100</span><br></pre></td></tr></table></figure>
+<h3 id="Port"><a class="header-anchor" href="#Port"></a>Port</h3>
+<p>SSH 預設是使用 Port <code>22</code>，但是不一定要使用 <code>22</code>，是可以更改的。許多的伺服器因為安全性因素會改用其他 Port。更改過 Port 會比較安全，預設的 <code>22</code> 因為大家都知道，所以必然是成為駭客首先攻擊的目標。</p>
+<p>若不是使用預設的 <code>22</code> 作為 SSH 的 Port，則可以使用 <code>-p</code> 來指定。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ssh -p [port number] [user]@[host]</span><br></pre></td></tr></table></figure>
+<p><strong>範例</strong><br>
+下面這個範例是已經將 Port 從預設的 <code>22</code> 切換到了 <code>2022</code>，這樣就可以透過 <code>2022</code> 來連線。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ssh -p 2022 tony@192.168.0.100</span><br></pre></td></tr></table></figure>
+<p>更改 Port 的方式請參考 <a href="https://www.vpser.net/security/centos-debian-ubuntu-linux-change-ssh-port.html" target="_blank" rel="noopener">CentOS/Debian/Ubuntu Linux修改SSH默認22端口</a>。</p>
+<h3 id="遠端執行指令"><a class="header-anchor" href="#遠端執行指令"></a>遠端執行指令</h3>
+<p>如果只是要執行一個指令的話不一定要登入伺服器再執行，可以將指令放在 ssh 指令末端就可以直接執行，執行完後會自動離開。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ssh [user]@[host] [<span class="built_in">command</span>]</span><br></pre></td></tr></table></figure>
+<p><strong>範例</strong><br>
+這個範例首先先遠端建立一個檔案，就著再次用遠端執行的方式列出來看剛才建好的檔案。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ ssh tony@192.168.0.100 touch test.txt</span><br><span class="line"></span><br><span class="line">$ ssh tony@192.168.0.100 ls -l</span><br><span class="line">total 0</span><br><span class="line">-rw-rw-r--. 1 opc opc 0 Oct 22 03:45 test.txt</span><br></pre></td></tr></table></figure>
+<h3 id="除錯模式"><a class="header-anchor" href="#除錯模式"></a>除錯模式</h3>
+<p>在 SSH 連線時可以加上 <code>-v</code> 開啟除錯模式就會輸出詳細的偵錯訊息。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ssh -v [user]@[host]</span><br></pre></td></tr></table></figure>
+<p><strong>範例</strong><br>
+這個範例我們加上 <code>-v</code> 開啟除錯模式，可以看到會輸出許多的偵錯訊息，就可以利用這些訊息來進行除錯。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">$ ssh -v tony@192.168.0.100</span><br><span class="line">OpenSSH_7.4p1, OpenSSL 1.0.2k-fips  26 Jan 2017</span><br><span class="line">debug1: Reading configuration data /home/tony/.ssh/config</span><br><span class="line"></span><br><span class="line">... 略 ...</span><br><span class="line"></span><br><span class="line">debug1: Next authentication method: publickey</span><br><span class="line">debug1: Trying private key: /home/tony/.ssh/id_rsa</span><br><span class="line">debug1: Authentication succeeded (publickey).</span><br><span class="line">Authenticated to 192.168.0.100 ([192.168.0.100]:22).</span><br><span class="line">debug1: channel 0: new [client-session]</span><br><span class="line">debug1: Requesting no-more-sessions@openssh.com</span><br><span class="line">debug1: Entering interactive session.</span><br><span class="line">debug1: pledge: network</span><br><span class="line">debug1: client_input_global_request: rtype hostkeys-00@openssh.com want_reply 0</span><br><span class="line">debug1: Sending environment.</span><br><span class="line">debug1: Sending env LANG = en_US.UTF-8</span><br><span class="line">Last login: Thu Oct 22 05:55:44 2020 from 192.168.0.99</span><br></pre></td></tr></table></figure>
+<h2 id="免密碼登入"><a class="header-anchor" href="#免密碼登入"></a>免密碼登入</h2>
+<p>前面有介紹了公私鑰的概念，但是預設登入時還是需要輸入帳號的密碼來驗證。實際上也是可以建立一組公私鑰來代替密碼進行登入，而且只要第一次驗證過了以後就不需要再輸密碼就可以自動驗證並登入。</p>
+<h3 id="建立公私鑰"><a class="header-anchor" href="#建立公私鑰"></a>建立公私鑰</h3>
+<p>要建立一組新的公私鑰可以透過 <code>ssh-keygen</code> 指令完成。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ssh-keygen</span><br></pre></td></tr></table></figure>
+<p>建立好的公私鑰如果沒有特別指定會放在 <code>/home/[user]/.ssh</code> 目錄下，並命名為 <code>id_rsa</code> 和 <code>id_rsa.pub</code>，分別是私鑰和公鑰。</p>
+<p>如果不放心還是希望要輸入一些認證資訊的話可以在 <code>passphrase</code> 指定，則連線時就要輸入指定的 <code>passphrase</code> 才能登入。</p>
+<p><strong>範例</strong><br>
+下面就直接建立了一組公私鑰，在第三行可以指定建立好的公私鑰要放在哪，在第五行的地方可以指定 <code>passphrase</code>。如果都不指定就直接按 <code>Enter</code> 略過。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">$ ssh-keygen</span><br><span class="line">Generating public/private rsa key pair.</span><br><span class="line">Enter file <span class="keyword">in</span> <span class="built_in">which</span> to save the key (/home/tony/.ssh/id_rsa):</span><br><span class="line">Created directory <span class="string">'/home/tony/.ssh'</span>.</span><br><span class="line">Enter passphrase (empty <span class="keyword">for</span> no passphrase):</span><br><span class="line">Enter same passphrase again:</span><br><span class="line">Your identification has been saved <span class="keyword">in</span> /home/tony/.ssh/id_rsa.</span><br><span class="line">Your public key has been saved <span class="keyword">in</span> /home/tony/.ssh/id_rsa.pub.</span><br><span class="line">The key fingerprint is:</span><br><span class="line">SHA256:EL087cZT+lk4Ha1rU4OdrO0YJrcnM8+u6gvifvYOPhM sample\tony@mycomputer</span><br><span class="line">The key<span class="string">'s randomart image is:</span></span><br><span class="line"><span class="string">+---[RSA 2048]----+</span></span><br><span class="line"><span class="string">|      ..         |</span></span><br><span class="line"><span class="string">|       ..        |</span></span><br><span class="line"><span class="string">|      .. o     . |</span></span><br><span class="line"><span class="string">|       .+ . . . .|</span></span><br><span class="line"><span class="string">|        S+ o o+o.|</span></span><br><span class="line"><span class="string">|         E* o.+=.|</span></span><br><span class="line"><span class="string">|       . +.+ Boo.|</span></span><br><span class="line"><span class="string">|      . o=o *=Oo |</span></span><br><span class="line"><span class="string">|      .oo.**o=X* |</span></span><br><span class="line"><span class="string">+----[SHA256]-----+</span></span><br></pre></td></tr></table></figure>
+<p>下面分別就是產生出來的私鑰和公鑰，格式就長這樣，內容有稍微調整過了所以不要直接拿去用會沒有用。請自己建一組出來。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line">$ cat id_rsa</span><br><span class="line">-----BEGIN RSA PRIVATE KEY-----</span><br><span class="line">MIIEpAIBAAKCAQEAxpp1bTuxB2mv8+Nv0hlwzDAO1OaAS926F2TtvP1J0DJw/hIG</span><br><span class="line">BIYOI1i9S7PvzsEKg0fjqIF7K5KwZXGzEF8Wq37zMh4eife72mWFquU63+Di8Cfc</span><br><span class="line">ZEqRH2gdM7EVs88BjSNoD/1Djyw642CKPMvCQPeehEdVuQLbuUjVCq679uNLN8BQ</span><br><span class="line">07kc9AOx6Yd16LJf8i5Yx/hepOWKqmYPyvxkZUbkTJmghbq77v4t8asuld+2iKY6</span><br><span class="line">N4+xD602aCLJT0vKfK1lo+wDsEK8/n5nfAKRpY3lGwEm8vuEmsnPLT6+lPWs2Ei4</span><br><span class="line">qjogWcfcz7t+3gfuNJVAVJzJhVlkBA0Ic6/vhwIDAQABAoIBAQCVKAPxGdeGvbVL</span><br><span class="line">8hBVNo4kjCNXehX45HmSgFacjY4WMwvxhQ/H7fZITak9ZdJA8XI3zpIIR9Z9jxmz</span><br><span class="line">1oSpUwDvo9R6W2yMKeaHy59sDeT9pyRJQWagW/BKKiNkYybteBauLV1GROusZ4eC</span><br><span class="line">pUqtBkrKCC6hIgIbhS4IJc76yuiYLiC09XcTx54DvJDjNPuQ5nrpd3vQVsZRku8u</span><br><span class="line">oxUOo5Iymp/n8xRKoNWIdV2wmo+dC7pqLmXGd8KldVW8xfhc4DEwbnMGnW80nKne</span><br><span class="line">pPjYJgH0iMU6Bqg5UclNUZvFoTKW2DDhME/MxxhlBuDdR9Rf2kaJqZtFTmCosCks</span><br><span class="line">ZugeODfhAoGBAPVbsRBZTTNVLU/whSF8roIUoCsalAA7XF9AmOQIP32ZwqF8KkIh</span><br><span class="line">ynn1DEI5CqARuwL9ZWHGKtEyFR7ARWjzyJ6zDUPJYDvCh08nvuJATB3EoIiVnsLD</span><br><span class="line">LZLEZD/A0z/rF5ShmLrKItvHxfed1ACu/JxT527bOpd8TxQcQCp0j2bzAoGBAM83</span><br><span class="line">oUINiYy7Q4p69ySvvnwFnMwgLZjvAuSgxq53fAyl4H7NFz1IDfc9W4N1l/aaeFak</span><br><span class="line">RuZbT/sc/FU56gpbgm6hHvWox3WyyyT20F/yF2QTIpylnHdJElDLSvIP1ajFkJQI</span><br><span class="line">/pYOEx8kbwFdDJ7T6BCClElFvPSataC/wEcYZyIdAoGBAMc0V7D3YCeSO0TQ+bXz</span><br><span class="line">fdedGWGFpa3+hAPN9ZQGYk3+fbgQkFq7BqI342kM2OSXIKfPxfU5KGBKcj1SS8hn</span><br><span class="line">TXYT12w23kwGp0cL9P3KyEHO96uNFqX4Q1MK4n2kd59Ipw+El/Tn0p9wNfnRiWO4</span><br><span class="line">rt3ZfWhS0+JUCfxA55PQqPEjAoGAXlfHlZkwPOCtmYjuqMdTBIhRoSYtXGnFeW4x</span><br><span class="line">xxEja2bCVTjvEbmSkjRfS/ToISCnFVtp5EtCmOPThsH9aoXLVq8It3QGi/HBR60P</span><br><span class="line">pf9E4w1LPuKv4CdmrV5BWwAWmOaKMrv9nTf/QLiHyakhq9Zy28F33fxgUUV22B81</span><br><span class="line">Xakgm4kCgYA5yfqslSLW8jlN7+iMqUE+McBopiKi+dm58R4W5XrcbqLR89qhR/sS</span><br><span class="line">TnSTemvoaPnxDhajHIPFMBdeYWLx+U+XivmBqMaJrUr8Q4ImVg7pUD5Kjj9l4S34</span><br><span class="line">Pu9vkqN+G7qQF4yyCdUOp2ZBZpGEPAVb31fWOImwkncGtxy+Sn6tRw==</span><br><span class="line">-----END RSA PRIVATE KEY-----</span><br><span class="line"></span><br><span class="line">$ cat id_rsa.pub</span><br><span class="line">ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDGmnVtO7EHaa/z42/SGXDMMA7U5oBL3boXZO28/UnQMnD+EgYEhg4jWL1Ls+/OwQqDR+OogXsrkrBlcbMQXxarfvMyHh6J97vaZYWq5Trf4OLwJ9xkSpEfaB0zsRWzzwGNI2gP/UOPLDrjYIo8y8JA956ER1W5Atu5SNUKrrv240s3wFDTuRz0A7Hph3Xosl/yLljH+F6k5YqqZg/K/GRlRuRMmaCFurvu/i3xqy6V37aIpjo3j7EPrTZoIslPS8p8rWWj7AOwQrz+fmd8ApGljeUbASby+4Sayc8tPr6U9azYSLiqOiBZx9zPu37eB+40lUBUnMmFWWQEDQhzr++H sample\tony@mycomputer</span><br></pre></td></tr></table></figure>
+<h3 id="複製公鑰到被連線主機"><a class="header-anchor" href="#複製公鑰到被連線主機"></a>複製公鑰到被連線主機</h3>
+<p><code>scp</code> 指令可以遠端加密複製檔案或目錄。這裡就不詳述 <code>scp</code> 指令的用法，下面的指令是將剛剛建立好的公鑰 <code>~/.ssh/id_rsa.pub</code> 複製到 <code>192.168.0.100</code> 這台主機的 <code>tony</code> 這個使用者下的 <code>~/.ssh/</code> 這個目錄。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ scp ~/.ssh/id_rsa.pub tony@192.168.0.100:~/.ssh/</span><br></pre></td></tr></table></figure>
+<h3 id="將公鑰寫入-authorized-keys"><a class="header-anchor" href="#將公鑰寫入-authorized-keys"></a>將公鑰寫入 authorized_keys</h3>
+<p>Linux 系統預設放置公鑰的檔案是 <code>authorized_keys</code>，所以要先登入到遠端的主機或是使用遠端執行命令將公鑰寫入到 <code>authorized_keys</code>。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ cat ~/.ssh/id_rsa.pub &gt;&gt; ~/.ssh/authorized_keys</span><br></pre></td></tr></table></figure>
+<h3 id="更改-authorized-keys-的權限"><a class="header-anchor" href="#更改-authorized-keys-的權限"></a>更改 authorized_keys 的權限</h3>
+<p>如果是之前沒設定過 <code>authorized_keys</code> 的權限或是第一次加入公鑰到遠端主機的話都要設定 <code>authorized_keys</code> 的權限，若是權限太大則 <code>ssh</code> 會判斷金鑰不安全而不能使用。這裡我們設定自己可以讀寫即可。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ chmod 600 ~/.ssh/authorized_keys</span><br></pre></td></tr></table></figure>
+<h3 id="重新登入"><a class="header-anchor" href="#重新登入"></a>重新登入</h3>
+<p>至此再重新登入就可以不需要密碼了，如果還有遇到金鑰權限的問題可以先檢查一下本機的 <code>id_rsa</code> 和 <code>id_rsa.pub</code> 權限是否過大，可以設定為自己可讀寫就好。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">chmod 600 ~/.ssh/id_rsa.pub</span><br><span class="line">chmod 600 ~/.ssh/id_rsa</span><br></pre></td></tr></table></figure>
+<h2 id="使用別名登入"><a class="header-anchor" href="#使用別名登入"></a>使用別名登入</h2>
+<p>從前面介紹的 SSH 連線方式可以看到，每次連線都要輸入帳號和 Server 的 IP 位址，但是如果有多台 Server 要連就可能會記不住。因此可以在 <code>~/.ssh</code> 目錄下的 <code>config</code> 檔加入一些設定，以後就可以只用別名來進行連線。設定的內容如下 :</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">Host [<span class="built_in">alias</span>]</span><br><span class="line">HostName [IP address]</span><br><span class="line">Port 22</span><br><span class="line">User [user name]</span><br></pre></td></tr></table></figure>
+<p>Host : 可以自行設定想要的別名，之後就會用這個名稱進行連線，所以建議是直接用 Server 的名稱。<br>
+HostName : 填入 Server 的 IP。<br>
+Port : ssh 預設的 Port 是 22，如果你的系統有更改過這裡就需要再特別設定。<br>
+User : 要登入的使用者帳號名稱。</p>
+<p>設定完成後就可以直接指定別名 (Host) 來進行登入，如下 :</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ssh [<span class="built_in">alias</span>]</span><br></pre></td></tr></table></figure>
+<p>而原本不指定用別名連線的方式就可以對應出如下的格式 :</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ssh [user name]@[IP address]</span><br></pre></td></tr></table></figure>
+<p><strong>範例</strong><br>
+首先要先在 <code>~/.ssh/config</code> 中加入 Server 的設定，如果 <code>~/.ssh/config</code> 不存在，那就建立一個，如下 :</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">$ cat &gt; config</span><br><span class="line"></span><br><span class="line">Host srv1</span><br><span class="line">HostName 192.168.0.100</span><br><span class="line">Port 22</span><br><span class="line">User mike</span><br><span class="line"></span><br><span class="line">[Ctrl+D]</span><br></pre></td></tr></table></figure>
+<p>設定完成後就可以直接指定別名進行登入，如下 :</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ ssh srv1</span><br><span class="line">key_load_public: invalid format</span><br><span class="line">Last login: Tue Oct 13 06:25:00 2020 from 192.168.0.99</span><br></pre></td></tr></table></figure>
+<h2 id="遠端主機的公鑰"><a class="header-anchor" href="#遠端主機的公鑰"></a>遠端主機的公鑰</h2>
+<p>在前面介紹 SSH 資料傳輸時會將公鑰傳給對方，而使用遠端連線登入時，遠端的主機同樣也會將他的公鑰傳到我們的本機上。儲存的位置就在 <code>~/.ssh/known_hosts</code> 這個檔案裡。如下 :</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ cat ~/.ssh/known_hosts</span><br><span class="line">192.168.0.100 ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBLbsxiHTQIhXUCUdjx0dJ6lkrVHeOYds3dIR2hhifiyl6RgVWaZNV+262++orkpamalxTuTSIAVHQ2EWywLWExs=</span><br></pre></td></tr></table></figure>
+<p>所以當遠端主機重新設定公鑰或者是重灌系統的話，公鑰就會和本機上的不一樣，造成驗證失敗。這時只要將 <code>known_hosts</code> 這個檔案刪除讓 <code>ssh</code> 重新連線就會自動抓取再寫到 <code>known_hosts</code>。</p>
+<p>不過如果刪除 <code>known_hosts</code> 的話就變成所有遠端主機的公鑰都要重新抓一次，所以如果不希望這樣的話也可以打開 <code>known_hosts</code> 直接刪除對應主機的那一行設定即可。</p>
+<h2 id="Summary"><a class="header-anchor" href="#Summary"></a>Summary</h2>
+<p>本篇介紹了 SSH 的原理即使用方式，大部分的情況都是用在遠端登入來進行操控。此外加入了免密碼登入和使用別名登入的功能也可以讓我們更方便的進行連線。</p>
+<h2 id="參考"><a class="header-anchor" href="#參考"></a>參考</h2>
+<p>[1] <a href="https://www.cnblogs.com/Detector/p/9728632.html" target="_blank" rel="noopener">小技巧：實現ssh服務器别名免密碼登錄</a><br>
+[2] <a href="https://blog.techbridge.cc/2017/04/16/simple-cryptography/" target="_blank" rel="noopener">網路安全(1) - 基礎密碼學</a><br>
+[3] <a href="https://www.itread01.com/content/1541400303.html" target="_blank" rel="noopener">ssh公鑰私鑰認證原理</a><br>
+[4] <a href="https://jennycodes.me/posts/security-ssh" target="_blank" rel="noopener">你該知道所有關於 SSH 的那些事</a><br>
+[5] <a href="https://www.vpser.net/security/centos-debian-ubuntu-linux-change-ssh-port.html" target="_blank" rel="noopener">CentOS/Debian/Ubuntu Linux修改SSH默認22端口</a><br>
+[6] <a href="https://blog.gtwang.org/linux/linux-scp-command-tutorial-examples/" target="_blank" rel="noopener">Linux 的 scp 指令用法教學與範例：遠端加密複製檔案與目錄</a></p>
+
+    </div>
+
+    
+    
+    
+      
+  <div class="popular-posts-header">系列文章</div>
+  <ul class="popular-posts">
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/linux-9_ssh-tunnel/" rel="bookmark">Linux (九) - SSH Tunnel 突破防火牆限制</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/linux-12_shell-script-1/" rel="bookmark">Linux (十二) - Shell Script 的撰寫 I</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/linux-3_file-chgrp-chown-chmod/" rel="bookmark">Linux (三) - 檔案的基本屬性與權限</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/linux-5_disk-management/" rel="bookmark">Linux (五) - 硬碟管理</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/linux-7_pipe/" rel="bookmark">Linux (七) - 管線命令 (pipe)</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/linux-10_shell-basic-concept/" rel="bookmark">Linux (十) - Shell 的基本概念和操作</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/linux-11_shell-variable/" rel="bookmark">Linux (十一) - Shell 的變數設定</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/linux-1_basic-concept-command/" rel="bookmark">Linux (一) - 基本概念與系統操作</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/linux-2_filesystem/" rel="bookmark">Linux (二) - 檔案系統架構</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/linux-4_file-directory-operation/" rel="bookmark">Linux (四) - 檔案與目錄操作</a></div>
+    </li>
+  </ul>
+
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/tags/Linux/" rel="tag"><i class="fa fa-tag"></i> Linux</a>
+              <a href="/tags/SSH/" rel="tag"><i class="fa fa-tag"></i> SSH</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/linux-7_pipe/" rel="prev" title="Linux (七) - 管線命令 (pipe)">
+      <i class="fa fa-chevron-left"></i> Linux (七) - 管線命令 (pipe)
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/linux-9_ssh-tunnel/" rel="next" title="Linux (九) - SSH Tunnel 突破防火牆限制">
+      Linux (九) - SSH Tunnel 突破防火牆限制 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<!-- tienyulin.github -->
+<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-8271558544185929"
+     data-ad-slot="8611071932"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#加密方式"><span class="nav-number">1.</span> <span class="nav-text">加密方式</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#數位簽章"><span class="nav-number">1.1.</span> <span class="nav-text">數位簽章</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#運作流程"><span class="nav-number">1.2.</span> <span class="nav-text">運作流程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#中間人攻擊-Man-in-the-middle-attack"><span class="nav-number">1.3.</span> <span class="nav-text">中間人攻擊 (Man-in-the-middle attack)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#第三方認證公鑰"><span class="nav-number">1.4.</span> <span class="nav-text">第三方認證公鑰</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#基本操作方式"><span class="nav-number">2.</span> <span class="nav-text">基本操作方式</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Port"><span class="nav-number">2.1.</span> <span class="nav-text">Port</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#遠端執行指令"><span class="nav-number">2.2.</span> <span class="nav-text">遠端執行指令</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#除錯模式"><span class="nav-number">2.3.</span> <span class="nav-text">除錯模式</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#免密碼登入"><span class="nav-number">3.</span> <span class="nav-text">免密碼登入</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#建立公私鑰"><span class="nav-number">3.1.</span> <span class="nav-text">建立公私鑰</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#複製公鑰到被連線主機"><span class="nav-number">3.2.</span> <span class="nav-text">複製公鑰到被連線主機</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#將公鑰寫入-authorized-keys"><span class="nav-number">3.3.</span> <span class="nav-text">將公鑰寫入 authorized_keys</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#更改-authorized-keys-的權限"><span class="nav-number">3.4.</span> <span class="nav-text">更改 authorized_keys 的權限</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#重新登入"><span class="nav-number">3.5.</span> <span class="nav-text">重新登入</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#使用別名登入"><span class="nav-number">4.</span> <span class="nav-text">使用別名登入</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#遠端主機的公鑰"><span class="nav-number">5.</span> <span class="nav-text">遠端主機的公鑰</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Summary"><span class="nav-number">6.</span> <span class="nav-text">Summary</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#參考"><span class="nav-number">7.</span> <span class="nav-text">參考</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Tien-Yu Lin"
+      src="/images/tienyu.jpg">
+  <p class="site-author-name" itemprop="name">Tien-Yu Lin</p>
+  <div class="site-description" itemprop="description">Try not to become a man of success, but rather try to become a man of value. - Albert Einstein</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">45</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">28</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">29</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/tienyulin" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;tienyulin" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://hub.docker.com/u/tienyu" title="DockerHub → https:&#x2F;&#x2F;hub.docker.com&#x2F;u&#x2F;tienyu" rel="noopener" target="_blank"><i class="fab fa-docker fa-fw"></i>DockerHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:t.tienyulin@gmail.com" title="E-Mail → mailto:t.tienyulin@gmail.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.linkedin.com/in/tony-lin-79733714b/" title="Linkedin → https:&#x2F;&#x2F;www.linkedin.com&#x2F;in&#x2F;tony-lin-79733714b&#x2F;" rel="noopener" target="_blank"><i class="fab fa-linkedin fa-fw"></i>Linkedin</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+      <!--google_adsense-->	      
+      	 
+        <div class="links-of-blogroll-title">	     
+          <i class="fa fa-google"></i> AdSense	       
+          <ins class="adsbygoogle"	      
+              style="display:block"	     
+              data-ad-client="ca-pub-8271558544185929"	
+              data-ad-slot="8611071932"	
+              data-ad-format="auto"	
+              data-full-width-responsive="true"></ins>	
+          <script>	
+            (adsbygoogle = window.adsbygoogle || []).push({});	
+          </script>	
+        </div>	
+      	
+      <!--/google_adsense-->
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Tien-Yu Lin</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a>
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="Total Visitors">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="Total Views">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+  <script>
+    (function(){
+      var canonicalURL, curProtocol;
+      //Get the <link> tag
+      var x=document.getElementsByTagName("link");
+		//Find the last canonical URL
+		if(x.length > 0){
+			for (i=0;i<x.length;i++){
+				if(x[i].rel.toLowerCase() == 'canonical' && x[i].href){
+					canonicalURL=x[i].href;
+				}
+			}
+		}
+    //Get protocol
+	    if (!canonicalURL){
+	    	curProtocol = window.location.protocol.split(':')[0];
+	    }
+	    else{
+	    	curProtocol = canonicalURL.split(':')[0];
+	    }
+      //Get current URL if the canonical URL does not exist
+	    if (!canonicalURL) canonicalURL = window.location.href;
+	    //Assign script content. Replace current URL with the canonical URL
+      !function(){var e=/([http|https]:\/\/[a-zA-Z0-9\_\.]+\.baidu\.com)/gi,r=canonicalURL,t=document.referrer;if(!e.test(r)){var n=(String(curProtocol).toLowerCase() === 'https')?"https://sp0.baidu.com/9_Q4simg2RQJ8t7jm9iCKT-xh_/s.gif":"//api.share.baidu.com/s.gif";t?(n+="?r="+encodeURIComponent(document.referrer),r&&(n+="&l="+r)):r&&(n+="?l="+r);var i=new Image;i.src=n}}(window);})();
+  </script>
+
+
+
+
+  
+<script src="//cdn.jsdelivr.net/npm/algoliasearch@4/dist/algoliasearch-lite.umd.js"></script>
+<script src="//cdn.jsdelivr.net/npm/instantsearch.js@4/dist/instantsearch.production.min.js"></script>
+<script src="/js/algolia-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://tienyulin.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  var disqus_config = function() {
+    this.page.url = "https://tienyulin.github.io/linux-8_ssh/";
+    this.page.identifier = "linux-8_ssh/";
+    this.page.title = "Linux (八) - SSH 安全加密連線";
+    };
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: disqus_config
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://tienyulin.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>

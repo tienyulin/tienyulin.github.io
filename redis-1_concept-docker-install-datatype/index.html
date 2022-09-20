@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="/lib/pace/pace-theme-bounce.min.css">
+  <script src="/lib/pace/pace.min.js"></script>
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"tienyulin.github.io","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"appID":"CKNGBQCM6Q","apiKey":"aa8f782cff7f67f246a3fd15f8592fc1","indexName":"tienyulin.github.com","hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="Redis 全名為 Remote Dictinoary Server，是一個記憶體內(in-memory)的 key-value 資料庫，簡單來說就是把資料放在記憶體而不是像傳統資料庫放在硬碟，以提升存取的速度。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Redis (一) - 基本概念">
+<meta property="og:url" content="https://tienyulin.github.io/redis-1_concept-docker-install-datatype/">
+<meta property="og:site_name" content="Tienyu Note">
+<meta property="og:description" content="Redis 全名為 Remote Dictinoary Server，是一個記憶體內(in-memory)的 key-value 資料庫，簡單來說就是把資料放在記憶體而不是像傳統資料庫放在硬碟，以提升存取的速度。">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://miro.medium.com/max/1024/1*-AfwBaNoMNnIm5kSTID9mA.png">
+<meta property="article:published_time" content="2020-07-10T00:00:00.000Z">
+<meta property="article:modified_time" content="2020-07-10T00:00:00.000Z">
+<meta property="article:author" content="Tien-Yu Lin">
+<meta property="article:tag" content="Redis">
+<meta property="article:tag" content="NoSQL">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://miro.medium.com/max/1024/1*-AfwBaNoMNnIm5kSTID9mA.png">
+
+<link rel="canonical" href="https://tienyulin.github.io/redis-1_concept-docker-install-datatype/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>Redis (一) - 基本概念 | Tienyu Note</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-169323232-1"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'UA-169323232-1');
+      }
+    </script>
+
+
+
+
+
+
+
+<script data-ad-client="ca-pub-8271558544185929" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Tienyu Note</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">Fly with me</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives<span class="badge">45</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-folder-open fa-fw"></i>Categories<span class="badge">28</span></a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags<span class="badge">29</span></a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-sitemap">
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-sitemap fa-fw"></i>Sitemap</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container"></div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="algolia-results">
+  <div id="algolia-stats"></div>
+  <div id="algolia-hits"></div>
+  <div id="algolia-pagination" class="algolia-pagination"></div>
+</div>
+
+      
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/tienyulin" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="https://tienyulin.github.io/redis-1_concept-docker-install-datatype/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/tienyu.jpg">
+      <meta itemprop="name" content="Tien-Yu Lin">
+      <meta itemprop="description" content="Try not to become a man of success, but rather try to become a man of value. - Albert Einstein">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Tienyu Note">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Redis (一) - 基本概念
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2020-07-10 00:00:00" itemprop="dateCreated datePublished" datetime="2020-07-10T00:00:00+00:00">2020-07-10</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/NoSQL/" itemprop="url" rel="index"><span itemprop="name">NoSQL</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/NoSQL/Redis/" itemprop="url" rel="index"><span itemprop="name">Redis</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="Views" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">Views: </span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus: </span>
+    
+    <a title="disqus" href="/redis-1_concept-docker-install-datatype/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="redis-1_concept-docker-install-datatype/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p><img src="https://miro.medium.com/max/1024/1*-AfwBaNoMNnIm5kSTID9mA.png" alt="image alt"></p>
+<p>Redis 全名為 Remote Dictinoary Server，是一個記憶體內(in-memory)的 key-value 資料庫，簡單來說就是把資料放在記憶體而不是像傳統資料庫放在硬碟，以提升存取的速度。</p>
+<a id="more"></a>
+<p>Redis 支援讓資料每隔一段時間儲存到硬碟，這樣可以讓電腦或伺服器重啟時還可以再從硬碟讀取出來。此外，也可以將每道指令寫進 log。Redis 還支援以 master-slave 的模式進行數據備份。</p>
+<p>Redis 的所有操作都是原子操作(atomic operation)，原子操作是指這個操作不可以被中斷，一旦開始執行就會一直執行到結束而且指令的執行順序也不能被更改。而原子操作也保證了操作的結果是正確的，操作若是不成功就完全不執行。</p>
+<h2 id="Redis-安裝"><a class="header-anchor" href="#Redis-安裝"></a>Redis 安裝</h2>
+<p>使用 <a href="https://tienyulin.github.io/docker-concept/">Docker</a> 安裝並啟動 Redis</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker run --name redis -d redis</span><br></pre></td></tr></table></figure>
+<p>啟動 Redis Container 之後，可以使用 docker exec 指令進到 Redis Container 內，再輸入 redis-cli 打開 Redis 終端。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">redis-cli</span><br></pre></td></tr></table></figure>
+<p>也可以使用 redis-cli 指令遠端連線開啟 Redis 終端，若是沒有設定密碼則不需要填。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">redis-cli -h host -p port -a password</span><br></pre></td></tr></table></figure>
+<p>範例 :</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">redis-cli -h 127.0.0.1 -p 6379</span><br></pre></td></tr></table></figure>
+<p>Redis 預設的 port 是 6379，如果有改過 port 則填入你設定的 port。</p>
+<p>打開的 Redis 終端如下 :</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">127.0.0.1:6379&gt;</span><br></pre></td></tr></table></figure>
+<h2 id="Redis-連線"><a class="header-anchor" href="#Redis-連線"></a>Redis 連線</h2>
+<p>打開了 Redis 的終端後，我們要來看一些基本的連線操作。</p>
+<h3 id="Ping"><a class="header-anchor" href="#Ping"></a>Ping</h3>
+<p>Ping 是用來在 Redis 終端上測試 Redis 是否有正常運作，若 Redis 有成功運作會回傳 PONG。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">127.0.0.1:6379&gt; ping</span><br><span class="line">PONG</span><br></pre></td></tr></table></figure>
+<h3 id="Echo"><a class="header-anchor" href="#Echo"></a>Echo</h3>
+<p>Echo 可以在 Redis 終端上印出文字。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">127.0.0.1:6379&gt; <span class="built_in">echo</span> &lt;message&gt;</span><br></pre></td></tr></table></figure>
+<p>範例 :</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">127.0.0.1:6379&gt; <span class="built_in">echo</span> helloworld</span><br><span class="line"><span class="string">"helloworld"</span></span><br></pre></td></tr></table></figure>
+<h3 id="Select"><a class="header-anchor" href="#Select"></a>Select</h3>
+<p>Select 用來切換到指定的 DB。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">127.0.0.1:6379&gt; select &lt;index&gt;</span><br></pre></td></tr></table></figure>
+<p>index 可以輸入指定的 DB。</p>
+<p>範例 :</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">// 指定切換到 DB 1</span><br><span class="line">127.0.0.1:6379&gt; select 1</span><br><span class="line">OK</span><br><span class="line"></span><br><span class="line">// 切換到 DB 1 之後，命令列前面會多一個 [1]</span><br><span class="line">127.0.0.1:6379[1]&gt;</span><br><span class="line"></span><br><span class="line">Redis 預設 DB 是 0，要切回來就指定切到 DB 0</span><br><span class="line">127.0.0.1:6379[1]&gt; select 0</span><br><span class="line">OK</span><br><span class="line">127.0.0.1:6379&gt;</span><br></pre></td></tr></table></figure>
+<h3 id="Quit"><a class="header-anchor" href="#Quit"></a>Quit</h3>
+<p>Quit 用於關閉 Redis 的連線。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">127.0.0.1:6379&gt; quit</span><br></pre></td></tr></table></figure>
+<h2 id="Redis-的配置"><a class="header-anchor" href="#Redis-的配置"></a>Redis 的配置</h2>
+<p>Redis 的配置文件在 Redis 的安裝目錄下，文件名稱為 <code>redis.conf</code>，可以透過 <code>config</code> 指令來查看或修改配置。</p>
+<h3 id="查看配置"><a class="header-anchor" href="#查看配置"></a>查看配置</h3>
+<p>使用 <code>get</code> 指令來查看配置</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">127.0.0.1:6379&gt; config get &lt;configsettingname&gt;</span><br></pre></td></tr></table></figure>
+<p>範例 :</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">127.0.0.1:6379&gt; config get port</span><br><span class="line">1) <span class="string">"port"</span></span><br><span class="line">2) <span class="string">"6379"</span></span><br></pre></td></tr></table></figure>
+<p>使用 <code>get </code> 取得所有的設定</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">127.0.0.1:6379&gt; config get</span><br></pre></td></tr></table></figure>
+<h3 id="編輯配置"><a class="header-anchor" href="#編輯配置"></a>編輯配置</h3>
+<p>使用 <code>set</code> 指令來修改配置</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">127.0.0.1:6379&gt; config <span class="built_in">set</span> &lt;configname&gt; &lt;newconfigvalue&gt;</span><br></pre></td></tr></table></figure>
+<p>範例 :</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">127.0.0.1:6379&gt; config <span class="built_in">set</span> loglevel <span class="string">"notice"</span></span><br><span class="line">OK</span><br><span class="line">127.0.0.1:6379&gt; config get loglevel</span><br><span class="line">1) <span class="string">"loglevel"</span></span><br><span class="line">2) <span class="string">"notice"</span></span><br></pre></td></tr></table></figure>
+<h3 id="設定密碼"><a class="header-anchor" href="#設定密碼"></a>設定密碼</h3>
+<p>上面 Redis 安裝有提到如果有設定密碼要輸入密碼，密碼就是在 <code>redis.conf</code> 裡的 <code>requirepass</code> 來設定。</p>
+<p>我們先取得 requirepass 看看原本的值是什麼。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">127.0.0.1:6379&gt; config get requirepass</span><br><span class="line">1) <span class="string">"requirepass"</span></span><br><span class="line">2) <span class="string">""</span></span><br></pre></td></tr></table></figure>
+<p>可以看到 requirepass 預設是空字串，所以如果之後要取消密碼只要改回空字串即可。</p>
+<p>接下來我們就來開始設定密碼，使用 config set 即可設定。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">127.0.0.1:6379&gt; config <span class="built_in">set</span> requirepass <span class="string">"123456"</span></span><br><span class="line">OK</span><br></pre></td></tr></table></figure>
+<p>設定完密碼後我們使用 config get 來取得 requirepass 看看密碼現在是什麼。這時 Redis 會回傳 <code>(error) NOAUTH Authentication required.</code>。這是因為我們已經設定密碼了，所以需要先驗證密碼才可以查看設定。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">127.0.0.1:6379&gt; config get requirepass</span><br><span class="line">(error) NOAUTH Authentication required.</span><br></pre></td></tr></table></figure>
+<p><strong>Auth</strong><br>
+Auth 是用來向 Redis 驗證密碼的指令。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">127.0.0.1:6379&gt; auth &lt;password&gt;</span><br></pre></td></tr></table></figure>
+<p>範例 :</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">127.0.0.1:6379&gt; auth 123456</span><br><span class="line">OK</span><br><span class="line">127.0.0.1:6379&gt; config get requirepass</span><br><span class="line">1) <span class="string">"requirepass"</span></span><br><span class="line">2) <span class="string">"123456"</span></span><br><span class="line">127.0.0.1:6379&gt; auth 123456</span><br><span class="line">OK</span><br><span class="line"></span><br><span class="line">// 取消設定密碼</span><br><span class="line">127.0.0.1:6379&gt; config <span class="built_in">set</span> requirepass <span class="string">""</span></span><br><span class="line">OK</span><br></pre></td></tr></table></figure>
+<h2 id="Redis-的資料型態"><a class="header-anchor" href="#Redis-的資料型態"></a>Redis 的資料型態</h2>
+<p>Redis 支援以下幾種資料型態 :</p>
+<ul>
+<li>String (字串)</li>
+<li>Hash (雜湊)</li>
+<li>List (清單)</li>
+<li>Set (集合)</li>
+<li>Sorted Set (有序集合)</li>
+<li>HyperLogLog</li>
+<li>Bitmap (點陣圖)</li>
+</ul>
+<h3 id="String"><a class="header-anchor" href="#String"></a>String</h3>
+<p>String 是 Redis 最基本的類型，也就是一個 Key 對應一個 Value。這個 String 是 <a href="https://www.cnblogs.com/jing99/p/11687308.html" target="_blank" rel="noopener">Binary-safe</a> 的，所以可以包含任何數據，包括圖片或者是序列化過的文件等。而 String 的值最大儲存限制為 512 MB。</p>
+<p><strong>set</strong><br>
+設定 String</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">127.0.0.1:6379&gt; <span class="built_in">set</span> &lt;key&gt; &lt;value&gt;</span><br></pre></td></tr></table></figure>
+<p><strong>mset</strong><br>
+可以一次設定多個 String</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">127.0.0.1:6379&gt; mset &lt;key1&gt; &lt;value1&gt; &lt;key2&gt; &lt;value2&gt; ...</span><br></pre></td></tr></table></figure>
+<p><strong>get</strong><br>
+取得 String</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">127.0.0.1:6379&gt; get &lt;key&gt;</span><br></pre></td></tr></table></figure>
+<p>範例 :</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">127.0.0.1:6379&gt; <span class="built_in">set</span> sampleKey sampleValue</span><br><span class="line">OK</span><br><span class="line">127.0.0.1:6379&gt; mset k1 v1 k2 v2 k3 v3</span><br><span class="line">OK</span><br><span class="line">127.0.0.1:6379&gt; get sampleKey</span><br><span class="line"><span class="string">"sampleValue"</span></span><br></pre></td></tr></table></figure>
+<h3 id="Hash"><a class="header-anchor" href="#Hash"></a>Hash</h3>
+<p>Hash 是一個 Key-Value 的集合，也就是所謂的 Hash Table。前面定義了 String 是一組 Key-Value，所以簡單來說一個 Hash 會儲存多個 String。</p>
+<p><strong>hset</strong><br>
+設定 Hash</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">127.0.0.1:6379&gt; hset &lt;hashKey&gt; &lt;field1&gt; &lt;value1&gt; &lt;field2&gt; &lt;value2&gt; ...</span><br></pre></td></tr></table></figure>
+<p>hashKey 就是這張 Hash 的名稱，field、value 是一組 String，可以連續輸入多組 String 一次完成建立 Hash。</p>
+<p>如果設定的 field 已經存在則會覆蓋 vaule 內容，也就是要修改內容也是使用 <code>hset</code> 指令來修改</p>
+<p><strong>hget</strong><br>
+取得 hash</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">// 取得 Hash 中的所有 String</span><br><span class="line">127.0.0.1:6379&gt; hgetall &lt;hashKey&gt;</span><br><span class="line"></span><br><span class="line">// 指定 Hash 中的一個 Key 來獲取 Value</span><br><span class="line">127.0.0.1:6379&gt; hget &lt;hashKey&gt; &lt;field&gt;</span><br></pre></td></tr></table></figure>
+<p>範例 :</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">127.0.0.1:6379&gt; hset Kevin sex male phone 0912345678</span><br><span class="line">(<span class="built_in">integer</span>) 2</span><br><span class="line">127.0.0.1:6379&gt; hgetall Kevin</span><br><span class="line">1) <span class="string">"sex"</span></span><br><span class="line">2) <span class="string">"male"</span></span><br><span class="line">3) <span class="string">"phone"</span></span><br><span class="line">4) <span class="string">"0912345678"</span></span><br><span class="line">127.0.0.1:6379&gt; hget Kevin sex</span><br><span class="line"><span class="string">"male"</span></span><br></pre></td></tr></table></figure>
+<h3 id="List"><a class="header-anchor" href="#List"></a>List</h3>
+<p>List 是一個簡單的字串清單，依照插入的順序排序，可以從左邊或右邊新增元素。</p>
+<p><strong>lpush</strong><br>
+從左邊插入元素</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">lpush &lt;key&gt; &lt;element1&gt; &lt;element2&gt; ...</span><br></pre></td></tr></table></figure>
+<p>這裡要注意的是會依照 element1、element2 的輸入順序依序從左邊插入，也就是完成後 List 會跟輸入的順序相反，變成 [element2, element1, …]。</p>
+<p><strong>rpush</strong><br>
+從右邊插入元素</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">rpush &lt;key&gt; &lt;element1&gt; &lt;element2&gt; ...</span><br></pre></td></tr></table></figure>
+<p><strong>lpop</strong><br>
+從左邊移除元素</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">lpop &lt;key&gt;</span><br></pre></td></tr></table></figure>
+<p><strong>rpop</strong><br>
+從右邊移除元素</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">rpop &lt;key&gt;</span><br></pre></td></tr></table></figure>
+<p><strong>lrange</strong><br>
+輸出指定區間的元素</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">lrange &lt;key&gt; &lt;start&gt; &lt;stop&gt;</span><br></pre></td></tr></table></figure>
+<p>start 和 stop 可以指定輸出的區間，0表示第一個元素，1表示第二個元素，以此類推。-1表示最後一個元素，-2表示倒數第二個元素，以此類推。</p>
+<p><strong>lindex</strong><br>
+輸出指定索引的元素內容</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">lindex &lt;key&gt; &lt;index&gt;</span><br></pre></td></tr></table></figure>
+<p>範例 :</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">127.0.0.1:6379&gt; lpush sampleList two three</span><br><span class="line">(<span class="built_in">integer</span>) 2</span><br><span class="line">127.0.0.1:6379&gt; lrange sampleList 0 -1</span><br><span class="line">1) <span class="string">"three"</span></span><br><span class="line">2) <span class="string">"two"</span></span><br><span class="line">127.0.0.1:6379&gt; rpush sampleList one</span><br><span class="line">(<span class="built_in">integer</span>) 3</span><br><span class="line">127.0.0.1:6379&gt; lrange sampleList 0 -1</span><br><span class="line">1) <span class="string">"three"</span></span><br><span class="line">2) <span class="string">"two"</span></span><br><span class="line">3) <span class="string">"one"</span></span><br><span class="line">127.0.0.1:6379&gt; lindex sampleList 2</span><br><span class="line"><span class="string">"one"</span></span><br><span class="line">127.0.0.1:6379&gt; lpop sampleList</span><br><span class="line"><span class="string">"three"</span></span><br><span class="line">127.0.0.1:6379&gt; lrange sampleList 0 -1</span><br><span class="line">1) <span class="string">"two"</span></span><br><span class="line">2) <span class="string">"one"</span></span><br><span class="line">127.0.0.1:6379&gt; rpop sampleList</span><br><span class="line"><span class="string">"one"</span></span><br><span class="line">127.0.0.1:6379&gt; lrange sampleList 0 -1</span><br><span class="line">1) <span class="string">"two"</span></span><br></pre></td></tr></table></figure>
+<h3 id="Set"><a class="header-anchor" href="#Set"></a>Set</h3>
+<p>Set 是一個沒有排序的字串集合，一個集合可以對應到多個字串，但是集合內的值不會重複。</p>
+<p><strong>sadd</strong><br>
+加入元素到集合裡，可以一次加入多個</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sadd &lt;key&gt; &lt;member1&gt; &lt;member2&gt; ...</span><br></pre></td></tr></table></figure>
+<p>key 是集合的名稱，member 是集合內的值。如果加入成功會回傳 1，若已經在集合裡則會回傳 0。</p>
+<p><strong>smembers</strong><br>
+列出集合內的所有元素</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">smembers &lt;key&gt;</span><br></pre></td></tr></table></figure>
+<p>範例 :</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">127.0.0.1:6379&gt; sadd week sunday monday tuesday</span><br><span class="line">(<span class="built_in">integer</span>) 3</span><br><span class="line">127.0.0.1:6379&gt; smembers week</span><br><span class="line">1) <span class="string">"tuesday"</span></span><br><span class="line">2) <span class="string">"monday"</span></span><br><span class="line">3) <span class="string">"sunday"</span></span><br><span class="line">127.0.0.1:6379&gt; sadd week sunday</span><br><span class="line">(<span class="built_in">integer</span>) 0</span><br><span class="line">127.0.0.1:6379&gt; smembers week</span><br><span class="line">1) <span class="string">"tuesday"</span></span><br><span class="line">2) <span class="string">"monday"</span></span><br><span class="line">3) <span class="string">"sunday"</span></span><br></pre></td></tr></table></figure>
+<h3 id="Sorted-Set-zset"><a class="header-anchor" href="#Sorted-Set-zset"></a>Sorted Set (zset)</h3>
+<p>Sorted Set 又稱 ZSet，是有序的集合，基本概念和 Set 一樣。差別在於會給每個元素一個 Score，用 Score 來做排序，而 Score 是可以重複的。</p>
+<p><strong>zadd</strong><br>
+加入元素到集合裡，並指定 Score</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">zadd &lt;key&gt; &lt;score1&gt; &lt;member1&gt; &lt;score2&gt; &lt;member2&gt; ...</span><br></pre></td></tr></table></figure>
+<p>score 可以指定元素的順序，可以重複。集合的排序是依照 score 由小排到大。</p>
+<p><strong>zrange</strong><br>
+輸出指定區間的元素</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">zrange &lt;key&gt; &lt;start&gt; &lt;stop&gt; withscores</span><br></pre></td></tr></table></figure>
+<p>指定輸出的區間概念和 lrange 一樣，withscores 可以選擇要不要加，有加會輸出 Score。</p>
+<p><strong>zrangebyscore</strong><br>
+輸出指定 Score 區間的元素</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">// 輸出 min &lt;= score &lt;= max 區間的元素</span><br><span class="line">zrangebyscore &lt;key&gt; &lt;min&gt; &lt;max&gt; withscores</span><br></pre></td></tr></table></figure>
+<p>min 和 max 可以輸入 Score 的區間，withscores 一樣是可以選擇要不要加，有加會輸出 Score。</p>
+<p>如果在 min 或 max 前面加上 <code>(</code> 代表開放區間，該 Score 會被排除。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">// 輸出 min &lt; score &lt;= max 區間的元素</span><br><span class="line">zrangebyscore &lt;key&gt; (&lt;min&gt; &lt;max&gt; withscores</span><br><span class="line"></span><br><span class="line">// 輸出 min &lt;= score &lt; max 區間的元素</span><br><span class="line">zrangebyscore &lt;key&gt; &lt;min&gt; (&lt;max&gt; withscores</span><br><span class="line"></span><br><span class="line">// 輸出 min &lt; score &lt; max 區間的元素</span><br><span class="line">zrangebyscore &lt;key&gt; (&lt;min&gt; (&lt;max&gt; withscores</span><br></pre></td></tr></table></figure>
+<p>指定 -inf 到 +inf 可以輸出所有元素，代表 Score 從負無限到正無限。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">// 輸出所有元素</span><br><span class="line">zrangebyscore &lt;key&gt; -inf +inf withscores</span><br></pre></td></tr></table></figure>
+<p><strong>zrange 和 zrangebyscore 的差別</strong></p>
+<p>zrange 是指定元素的索引值，例如 : 0 是第一個值，1 是第二個值。</p>
+<p>zrangebyscore 指定的是 Score，所以若是要輸出全部並不是像 range 傳 0 到 -1，而是傳 -inf 到 +inf，代表 Score 從負無限到正無限。</p>
+<p>範例 :</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line">127.0.0.1:6379&gt; zadd week 0 sunday 2 tuesday 1 monday</span><br><span class="line">(<span class="built_in">integer</span>) 3 </span><br><span class="line">127.0.0.1:6379&gt; zrange week 0 -1 withscores          </span><br><span class="line">1) <span class="string">"sunday"</span>                                          </span><br><span class="line">2) <span class="string">"0"</span>                                               </span><br><span class="line">3) <span class="string">"monday"</span>                                          </span><br><span class="line">4) <span class="string">"1"</span>                                               </span><br><span class="line">5) <span class="string">"tuesday"</span>                                         </span><br><span class="line">6) <span class="string">"2"</span>                                               </span><br><span class="line">127.0.0.1:6379&gt; zrange week 0 -1                     </span><br><span class="line">1) <span class="string">"sunday"</span>                                          </span><br><span class="line">2) <span class="string">"monday"</span>                                          </span><br><span class="line">3) <span class="string">"tuesday"</span> </span><br><span class="line">127.0.0.1:6379&gt; zrangebyscore week 0 3 withscores    </span><br><span class="line">1) <span class="string">"sunday"</span>                                          </span><br><span class="line">2) <span class="string">"0"</span>                                               </span><br><span class="line">3) <span class="string">"monday"</span>                                          </span><br><span class="line">4) <span class="string">"1"</span>                                               </span><br><span class="line">5) <span class="string">"tuesday"</span>                                         </span><br><span class="line">6) <span class="string">"2"</span>                                                             </span><br><span class="line">127.0.0.1:6379&gt; zrangebyscore week -inf +inf         </span><br><span class="line">1) <span class="string">"sunday"</span>                                          </span><br><span class="line">2) <span class="string">"monday"</span>                                          </span><br><span class="line">3) <span class="string">"tuesday"</span>    </span><br><span class="line">127.0.0.1:6379&gt; zrangebyscore week (0 2 withscores</span><br><span class="line">1) <span class="string">"monday"</span></span><br><span class="line">2) <span class="string">"1"</span></span><br><span class="line">3) <span class="string">"tuesday"</span></span><br><span class="line">4) <span class="string">"2"</span></span><br><span class="line">127.0.0.1:6379&gt; zrangebyscore week 0 (2 withscores</span><br><span class="line">1) <span class="string">"sunday"</span></span><br><span class="line">2) <span class="string">"0"</span></span><br><span class="line">3) <span class="string">"monday"</span></span><br><span class="line">4) <span class="string">"1"</span></span><br><span class="line">127.0.0.1:6379&gt; zrangebyscore week (0 (2 withscores</span><br><span class="line">1) <span class="string">"monday"</span></span><br><span class="line">2) <span class="string">"1"</span></span><br></pre></td></tr></table></figure>
+<h3 id="HyperLogLog"><a class="header-anchor" href="#HyperLogLog"></a>HyperLogLog</h3>
+<p>HyperLogLog 是用來做基數統計的，會統計不重複的元素有多少，例如統計頁面的訪問人數。</p>
+<p><strong>pfadd</strong><br>
+加入元素到 HyperLogLog</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">pfadd &lt;key&gt; &lt;element1&gt; &lt;element2&gt; ...</span><br></pre></td></tr></table></figure>
+<p><strong>pfcount</strong><br>
+統計 HyperLogLog 的基數預估值</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">pfcount &lt;key&gt;</span><br></pre></td></tr></table></figure>
+<p>pfcount 會統計不重複的元素有多少並回傳輸出。</p>
+<p>範例 :</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">127.0.0.1:6379&gt; pfadd collection 1 1 2 2 3 3 3 4 4 5 5</span><br><span class="line">(<span class="built_in">integer</span>) 1</span><br><span class="line">127.0.0.1:6379&gt; pfcount collection</span><br><span class="line">(<span class="built_in">integer</span>) 5</span><br></pre></td></tr></table></figure>
+<h3 id="Bitmap"><a class="header-anchor" href="#Bitmap"></a>Bitmap</h3>
+<p>Bitmap 可以用一個 bit 來表示某個元素的值，即 0 和 1。透過這樣的方式組成的字串可以大大的節省儲存空間。</p>
+<p><strong>setbit</strong><br>
+設定指定位元的值</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">setbit &lt;key&gt; &lt;offset&gt; &lt;value&gt;</span><br></pre></td></tr></table></figure>
+<p>key 是這個 Bitmap 的名稱，offset 稱作位移量，是相對於讀取檔案的游標所在的位置的位移。在這裡只要想成是設定第幾個位元就好。而 value 只能是 1 或是 0。</p>
+<p>setbit 指令完成後會回傳該位元被修改前的值。</p>
+<p><strong>getbit</strong><br>
+取得指定位元的值</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">getbit &lt;key&gt; &lt;offset&gt;</span><br></pre></td></tr></table></figure>
+<p>範例 :</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">127.0.0.1:6379&gt; setbit testBit1 125 1</span><br><span class="line">(<span class="built_in">integer</span>) 0</span><br><span class="line">127.0.0.1:6379&gt; setbit testBit1 125 0</span><br><span class="line">(<span class="built_in">integer</span>) 1</span><br><span class="line">127.0.0.1:6379&gt; getbit testBit1 125</span><br><span class="line">(<span class="built_in">integer</span>) 0</span><br><span class="line">127.0.0.1:6379&gt; getbit testBit1 100</span><br><span class="line">(<span class="built_in">integer</span>) 0</span><br><span class="line">127.0.0.1:6379&gt; setbit testBit1 100 2</span><br><span class="line">(error) ERR bit is not an <span class="built_in">integer</span> or out of range</span><br></pre></td></tr></table></figure>
+<p>範例最後刻意測試輸入 value 不是 1 或 0，可以看到會報錯。</p>
+<h2 id="Summary"><a class="header-anchor" href="#Summary"></a>Summary</h2>
+<p>以上僅列出了部分常用的資料型態操作，想要了解更多操作指令請參考 <a href="https://redis.io/topics/data-types-intro#hyperloglogs" target="_blank" rel="noopener">Redis 官網</a>。</p>
+<p><a href="https://tienyulin.github.io/redis-key-command/">下一篇</a>我們將介紹如何管理和操作這些建立出來的 Key。</p>
+<h2 id="參考"><a class="header-anchor" href="#參考"></a>參考</h2>
+<p>[1] <a href="https://progressbar.tw/posts/93" target="_blank" rel="noopener">讓網站速度飛快的秘密，你了解什麼是網頁快取(Cache)嗎?</a><br>
+[2] <a href="https://blog.techbridge.cc/2016/06/18/redis-introduction/" target="_blank" rel="noopener">資料庫的好夥伴：Redis</a><br>
+[3] <a href="https://codertw.com/%E7%A8%8B%E5%BC%8F%E8%AA%9E%E8%A8%80/436750/" target="_blank" rel="noopener">深入理解Atomic原子操作和volatile非原子性</a><br>
+[4] <a href="https://twgreatdaily.com/MV61j2wBvvf6VcSZXwkq.html" target="_blank" rel="noopener">Java 原子操作的實現原理</a><br>
+[5] <a href="https://www.runoob.com/redis/redis-tutorial.html" target="_blank" rel="noopener">Redis 教程 | RUNOOB</a><br>
+[6] <a href="https://redis.io/topics/data-types-intro#hyperloglogs" target="_blank" rel="noopener">An introduction to Redis data types and abstractions</a></p>
+
+    </div>
+
+    
+    
+    
+      
+  <div class="popular-posts-header">系列文章</div>
+  <ul class="popular-posts">
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/redis-3_pubsub/" rel="bookmark">Redis (三) - Pub/Sub 發佈訂閱</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/redis-2_key-command/" rel="bookmark">Redis (二) - Key 的管理與操作</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/redis-5_server-management/" rel="bookmark">Redis (五) - 管理 Redis Server</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/redis-6_master-slave-replication-sentinel-cluster/" rel="bookmark">Redis (六) - 主從複製、哨兵與叢集模式</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/redis-4_transaction/" rel="bookmark">Redis (四) - Transaction</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/elasticsearch-1_concept/" rel="bookmark">Elasticsearch (一) - 基本概念</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/elasticsearch-6_aggregation/" rel="bookmark">Elasticsearch (六) - Aggregation 聚合</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/elasticsearch-7_cluster-kibana-docker-compose/" rel="bookmark">Elasticsearch (七) - 多節點 Cluster 建立搭配 Kibana</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/elasticsearch-2_kibana-command-dsl-docker-compose/" rel="bookmark">Elasticsearch (二) - 快速搭建與 Document 的建立、更新和刪除</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/elasticsearch-3_query-filter/" rel="bookmark">Elasticsearch (三) - 查詢和過濾</a></div>
+    </li>
+  </ul>
+
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/tags/Redis/" rel="tag"><i class="fa fa-tag"></i> Redis</a>
+              <a href="/tags/NoSQL/" rel="tag"><i class="fa fa-tag"></i> NoSQL</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/asp-net-core-filter/" rel="prev" title="ASP.NET Core - Filter">
+      <i class="fa fa-chevron-left"></i> ASP.NET Core - Filter
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/redis-2_key-command/" rel="next" title="Redis (二) - Key 的管理與操作">
+      Redis (二) - Key 的管理與操作 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<!-- tienyulin.github -->
+<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-8271558544185929"
+     data-ad-slot="8611071932"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Redis-安裝"><span class="nav-number">1.</span> <span class="nav-text">Redis 安裝</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Redis-連線"><span class="nav-number">2.</span> <span class="nav-text">Redis 連線</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Ping"><span class="nav-number">2.1.</span> <span class="nav-text">Ping</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Echo"><span class="nav-number">2.2.</span> <span class="nav-text">Echo</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Select"><span class="nav-number">2.3.</span> <span class="nav-text">Select</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Quit"><span class="nav-number">2.4.</span> <span class="nav-text">Quit</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Redis-的配置"><span class="nav-number">3.</span> <span class="nav-text">Redis 的配置</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#查看配置"><span class="nav-number">3.1.</span> <span class="nav-text">查看配置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#編輯配置"><span class="nav-number">3.2.</span> <span class="nav-text">編輯配置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#設定密碼"><span class="nav-number">3.3.</span> <span class="nav-text">設定密碼</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Redis-的資料型態"><span class="nav-number">4.</span> <span class="nav-text">Redis 的資料型態</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#String"><span class="nav-number">4.1.</span> <span class="nav-text">String</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Hash"><span class="nav-number">4.2.</span> <span class="nav-text">Hash</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#List"><span class="nav-number">4.3.</span> <span class="nav-text">List</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Set"><span class="nav-number">4.4.</span> <span class="nav-text">Set</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Sorted-Set-zset"><span class="nav-number">4.5.</span> <span class="nav-text">Sorted Set (zset)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#HyperLogLog"><span class="nav-number">4.6.</span> <span class="nav-text">HyperLogLog</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Bitmap"><span class="nav-number">4.7.</span> <span class="nav-text">Bitmap</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Summary"><span class="nav-number">5.</span> <span class="nav-text">Summary</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#參考"><span class="nav-number">6.</span> <span class="nav-text">參考</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Tien-Yu Lin"
+      src="/images/tienyu.jpg">
+  <p class="site-author-name" itemprop="name">Tien-Yu Lin</p>
+  <div class="site-description" itemprop="description">Try not to become a man of success, but rather try to become a man of value. - Albert Einstein</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">45</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">28</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">29</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/tienyulin" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;tienyulin" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://hub.docker.com/u/tienyu" title="DockerHub → https:&#x2F;&#x2F;hub.docker.com&#x2F;u&#x2F;tienyu" rel="noopener" target="_blank"><i class="fab fa-docker fa-fw"></i>DockerHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:t.tienyulin@gmail.com" title="E-Mail → mailto:t.tienyulin@gmail.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.linkedin.com/in/tony-lin-79733714b/" title="Linkedin → https:&#x2F;&#x2F;www.linkedin.com&#x2F;in&#x2F;tony-lin-79733714b&#x2F;" rel="noopener" target="_blank"><i class="fab fa-linkedin fa-fw"></i>Linkedin</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+      <!--google_adsense-->	      
+      	 
+        <div class="links-of-blogroll-title">	     
+          <i class="fa fa-google"></i> AdSense	       
+          <ins class="adsbygoogle"	      
+              style="display:block"	     
+              data-ad-client="ca-pub-8271558544185929"	
+              data-ad-slot="8611071932"	
+              data-ad-format="auto"	
+              data-full-width-responsive="true"></ins>	
+          <script>	
+            (adsbygoogle = window.adsbygoogle || []).push({});	
+          </script>	
+        </div>	
+      	
+      <!--/google_adsense-->
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Tien-Yu Lin</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a>
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="Total Visitors">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="Total Views">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+  <script>
+    (function(){
+      var canonicalURL, curProtocol;
+      //Get the <link> tag
+      var x=document.getElementsByTagName("link");
+		//Find the last canonical URL
+		if(x.length > 0){
+			for (i=0;i<x.length;i++){
+				if(x[i].rel.toLowerCase() == 'canonical' && x[i].href){
+					canonicalURL=x[i].href;
+				}
+			}
+		}
+    //Get protocol
+	    if (!canonicalURL){
+	    	curProtocol = window.location.protocol.split(':')[0];
+	    }
+	    else{
+	    	curProtocol = canonicalURL.split(':')[0];
+	    }
+      //Get current URL if the canonical URL does not exist
+	    if (!canonicalURL) canonicalURL = window.location.href;
+	    //Assign script content. Replace current URL with the canonical URL
+      !function(){var e=/([http|https]:\/\/[a-zA-Z0-9\_\.]+\.baidu\.com)/gi,r=canonicalURL,t=document.referrer;if(!e.test(r)){var n=(String(curProtocol).toLowerCase() === 'https')?"https://sp0.baidu.com/9_Q4simg2RQJ8t7jm9iCKT-xh_/s.gif":"//api.share.baidu.com/s.gif";t?(n+="?r="+encodeURIComponent(document.referrer),r&&(n+="&l="+r)):r&&(n+="?l="+r);var i=new Image;i.src=n}}(window);})();
+  </script>
+
+
+
+
+  
+<script src="//cdn.jsdelivr.net/npm/algoliasearch@4/dist/algoliasearch-lite.umd.js"></script>
+<script src="//cdn.jsdelivr.net/npm/instantsearch.js@4/dist/instantsearch.production.min.js"></script>
+<script src="/js/algolia-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://tienyulin.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  var disqus_config = function() {
+    this.page.url = "https://tienyulin.github.io/redis-1_concept-docker-install-datatype/";
+    this.page.identifier = "redis-1_concept-docker-install-datatype/";
+    this.page.title = "Redis (一) - 基本概念";
+    };
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: disqus_config
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://tienyulin.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>

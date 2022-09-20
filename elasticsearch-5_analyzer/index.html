@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="/lib/pace/pace-theme-bounce.min.css">
+  <script src="/lib/pace/pace.min.js"></script>
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"tienyulin.github.io","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"appID":"CKNGBQCM6Q","apiKey":"aa8f782cff7f67f246a3fd15f8592fc1","indexName":"tienyulin.github.com","hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="前面的文章有提到 Elasticsearch 因為是使用反向索引，所以會在建立 Document 時將句子拆開來以建立反向索引。而這個拆分的過程就是由分析器所執行的，分析器主要由三個部分所組成 :  Character Filters (字符過濾器) Tokenizer (分詞器) Token Filter (單詞過濾器)  下面我們就來了解分析器是如何運作的。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Elasticsearch (五) - Analyzer 分析器">
+<meta property="og:url" content="https://tienyulin.github.io/elasticsearch-5_analyzer/">
+<meta property="og:site_name" content="Tienyu Note">
+<meta property="og:description" content="前面的文章有提到 Elasticsearch 因為是使用反向索引，所以會在建立 Document 時將句子拆開來以建立反向索引。而這個拆分的過程就是由分析器所執行的，分析器主要由三個部分所組成 :  Character Filters (字符過濾器) Tokenizer (分詞器) Token Filter (單詞過濾器)  下面我們就來了解分析器是如何運作的。">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://codingexplained.com/wp-content/uploads/Introduction-to-analysis.png">
+<meta property="og:image" content="https://static.packt-cdn.com/products/9781789957754/graphics/c4999022-9032-4680-96f6-cf1b1af27815.png">
+<meta property="og:image" content="https://mednoter.com/media/files/2014/Sep/2014-09-07-custom_analyzers_diag.png">
+<meta property="article:published_time" content="2020-08-11T00:00:00.000Z">
+<meta property="article:modified_time" content="2020-08-11T00:00:00.000Z">
+<meta property="article:author" content="Tien-Yu Lin">
+<meta property="article:tag" content="NoSQL">
+<meta property="article:tag" content="Elasticsearch">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://codingexplained.com/wp-content/uploads/Introduction-to-analysis.png">
+
+<link rel="canonical" href="https://tienyulin.github.io/elasticsearch-5_analyzer/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>Elasticsearch (五) - Analyzer 分析器 | Tienyu Note</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-169323232-1"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'UA-169323232-1');
+      }
+    </script>
+
+
+
+
+
+
+
+<script data-ad-client="ca-pub-8271558544185929" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Tienyu Note</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">Fly with me</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives<span class="badge">45</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-folder-open fa-fw"></i>Categories<span class="badge">28</span></a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags<span class="badge">29</span></a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-sitemap">
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-sitemap fa-fw"></i>Sitemap</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container"></div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="algolia-results">
+  <div id="algolia-stats"></div>
+  <div id="algolia-hits"></div>
+  <div id="algolia-pagination" class="algolia-pagination"></div>
+</div>
+
+      
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/tienyulin" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="https://tienyulin.github.io/elasticsearch-5_analyzer/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/tienyu.jpg">
+      <meta itemprop="name" content="Tien-Yu Lin">
+      <meta itemprop="description" content="Try not to become a man of success, but rather try to become a man of value. - Albert Einstein">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Tienyu Note">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Elasticsearch (五) - Analyzer 分析器
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2020-08-11 00:00:00" itemprop="dateCreated datePublished" datetime="2020-08-11T00:00:00+00:00">2020-08-11</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/NoSQL/" itemprop="url" rel="index"><span itemprop="name">NoSQL</span></a>
+                </span>
+                  , 
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/NoSQL/Elasticsearch/" itemprop="url" rel="index"><span itemprop="name">Elasticsearch</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="Views" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">Views: </span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus: </span>
+    
+    <a title="disqus" href="/elasticsearch-5_analyzer/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="elasticsearch-5_analyzer/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p><img src="https://codingexplained.com/wp-content/uploads/Introduction-to-analysis.png" alt="Analyzer"></p>
+<p>前面的文章有提到 Elasticsearch 因為是使用反向索引，所以會在建立 Document 時將句子拆開來以建立反向索引。而這個拆分的過程就是由分析器所執行的，分析器主要由三個部分所組成 :</p>
+<ul>
+<li>Character Filters (字符過濾器)</li>
+<li>Tokenizer (分詞器)</li>
+<li>Token Filter (單詞過濾器)</li>
+</ul>
+<p>下面我們就來了解分析器是如何運作的。</p>
+<a id="more"></a>
+<h2 id="分析器的工作流程"><a class="header-anchor" href="#分析器的工作流程"></a>分析器的工作流程</h2>
+<p>分析器就像流水線一樣，字串經過一關一關的處理，最後得到單詞。如下 :<br>
+<img src="https://static.packt-cdn.com/products/9781789957754/graphics/c4999022-9032-4680-96f6-cf1b1af27815.png" alt="Analyzer Pipline"></p>
+<h3 id="Character-Filters-字符過濾器"><a class="header-anchor" href="#Character-Filters-字符過濾器"></a>Character Filters (字符過濾器)</h3>
+<p>字符過濾器用於對字串先進行預處理，也就是會先整理這些字串。例如，去除 html 標籤或是將 <code>&amp;</code> 轉換成 <code>and</code>。</p>
+<h3 id="Tokenizer-分詞器"><a class="header-anchor" href="#Tokenizer-分詞器"></a>Tokenizer (分詞器)</h3>
+<p>分詞器會將處理過的字串進行分詞，也就是將字串拆分成單詞。</p>
+<h3 id="Token-Filter-單詞過濾器"><a class="header-anchor" href="#Token-Filter-單詞過濾器"></a>Token Filter (單詞過濾器)</h3>
+<p>經過分詞後，單詞在經過單詞過濾器時可能會被改變，例如，大寫換成小寫、刪除無用的單詞 (a、and、the 等等) 或是新增單詞 (harmful、detrimental 這種同義詞)。</p>
+<h3 id="範例"><a class="header-anchor" href="#範例"></a>範例</h3>
+<p><img src="https://mednoter.com/media/files/2014/Sep/2014-09-07-custom_analyzers_diag.png" alt="Analyzer Pipline Example"></p>
+<h2 id="內建的分析器"><a class="header-anchor" href="#內建的分析器"></a>內建的分析器</h2>
+<h3 id="Standard-Analyzer-標準分析器"><a class="header-anchor" href="#Standard-Analyzer-標準分析器"></a>Standard Analyzer (標準分析器)</h3>
+<p><a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/analysis-standard-analyzer.html" target="_blank" rel="noopener">標準分析器</a>是 Elasticsearch 默認使用的分析器，他會根據 Unicode 所定義的<a href="https://www.twblogs.net/a/5b904e312b7177672218d7b4" target="_blank" rel="noopener">單詞邊界</a>來劃分字串，並刪除大部分的標點符號。最後再將所有單詞轉換成小寫。標準分析器也可以指定要過濾的字(Stop Words)。</p>
+<p><strong>範例</strong><br>
+輸入的內容 :<br>
+<code>3. Semi-formal, as the name implies, is slightly more relaxed.</code></p>
+<p>經過標準分析器後會產生 :<br>
+<code>3</code>、<code>semi</code>、<code>formal</code>、<code>as</code>、<code>the</code>、<code>name</code>、<code>implies</code>、<code>is</code>、<code>slightly</code>、<code>more</code>、<code>relaxed</code></p>
+<h3 id="Simple-Analyzer-簡單分析器"><a class="header-anchor" href="#Simple-Analyzer-簡單分析器"></a>Simple Analyzer (簡單分析器)</h3>
+<p>簡單分析器會在任何不是字母的地方劃分單詞，再將單詞轉成小寫。</p>
+<p><strong>範例</strong><br>
+同樣使用標準分析器範例所輸入的內容，經過簡單分析器後會產生 :<br>
+<code>semi</code>、<code>formal</code>、<code>as</code>、<code>the</code>、<code>name</code>、<code>implies</code>、<code>is</code>、<code>slightly</code>、<code>more</code>、<code>relaxed</code></p>
+<p>可以發現數字 3 不見了，因為他不是字母。</p>
+<h3 id="Whitespace-Analyzer-空格分析器"><a class="header-anchor" href="#Whitespace-Analyzer-空格分析器"></a>Whitespace Analyzer (空格分析器)</h3>
+<p>空格分析器會在空格的地方劃分單詞。</p>
+<p><strong>範例</strong><br>
+同樣使用標準分析器範例所輸入的內容，經過空格分析器後會產生 :<br>
+<code>3.</code>、<code>Semi-formal,</code>、<code>as</code>、<code>the</code>、<code>name</code>、<code>implies,</code>、<code>is</code>、<code>slightly</code>、<code>more</code>、<code>relaxed.</code></p>
+<p>可以發現 semi-formal 因為中間不是空格，所以不會被劃分成兩個單詞。</p>
+<h3 id="Stop-Analyzer-停用詞分析器"><a class="header-anchor" href="#Stop-Analyzer-停用詞分析器"></a>Stop Analyzer (停用詞分析器)</h3>
+<p>停用詞分析器基本上有和簡單分析器一樣的功能。此外他還會過濾掉停用詞，預設是英文的修飾詞，例如， a、the、is 等等。</p>
+<p>同樣使用標準分析器範例所輸入的內容，經過停用詞分析器後會產生 :<br>
+<code>semi</code>、<code>formal</code>、<code>name</code>、<code>implies</code>、<code>slightly</code>、<code>relaxed</code></p>
+<p>可以發現有許多單詞已經被過濾掉了。除了預設的停用詞過濾，也可以自己指定要過濾的單詞。</p>
+<h3 id="Keyword-Analyzer-關鍵字分析器"><a class="header-anchor" href="#Keyword-Analyzer-關鍵字分析器"></a>Keyword Analyzer (關鍵字分析器)</h3>
+<p>關鍵字分析器不會進行分詞，會直接將輸入當作一個單詞。也就是說以標準分析器的範例輸入內容來說，<code>3. Semi-formal, as the name implies, is slightly more relaxed.</code> 整段不會被分開。</p>
+<p>這個在 <a href="https://tienyulin.github.io/elasticsearch-kibana-command-dsl-docker-compose/#Mapping">Elasticsearch (二) - 快速搭建與 Document 的建立、更新和刪除</a> 中，介紹 Mapping 有提到過。如果是沒有先定義 Mapping 直接加入 Document 的話，Elasticsearch 會自動多加一個 Field，這個 Field 就會定義成 Keyword，也就是搜尋時要完全符合。</p>
+<h3 id="Language-Analyzer-語言分析器"><a class="header-anchor" href="#Language-Analyzer-語言分析器"></a>Language Analyzer (語言分析器)</h3>
+<p>語言分析器會根據指定的語言進行分詞，Elasticsearch 目前支援的還沒有中文。</p>
+<p>同樣使用標準分析器範例所輸入的內容，經過英文的語言分析器後會產生 :<br>
+<code>3</code>、<code>semi</code>、<code>formal</code>、<code>name</code>、<code>impli</code>、<code>slightli</code>、<code>more</code>、<code>relax</code></p>
+<h2 id="使用內建分析器"><a class="header-anchor" href="#使用內建分析器"></a>使用內建分析器</h2>
+<p>首先先建立 6 個 Index 和 Type 並自訂 Mapping，分別指定每個欄位所要使用的分析器。</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br></pre></td><td class="code"><pre><span class="line">PUT standard_analyzer</span><br><span class="line">POST standard_analyzer/_mapping/standard</span><br><span class="line">&#123;</span><br><span class="line">  <span class="attr">"properties"</span>: &#123;</span><br><span class="line">    <span class="attr">"content"</span>:&#123;</span><br><span class="line">      <span class="attr">"type"</span>: <span class="string">"text"</span>,</span><br><span class="line">      <span class="attr">"analyzer"</span>: <span class="string">"standard"</span></span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">PUT simple_analyzer</span><br><span class="line">POST simple_analyzer/_mapping/simple</span><br><span class="line">&#123;</span><br><span class="line">  <span class="attr">"properties"</span>: &#123;</span><br><span class="line">    <span class="attr">"content"</span>:&#123;</span><br><span class="line">      <span class="attr">"type"</span>: <span class="string">"text"</span>,</span><br><span class="line">      <span class="attr">"analyzer"</span>: <span class="string">"simple"</span></span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">PUT whitespace_analyzer</span><br><span class="line">POST whitespace_analyzer/_mapping/whitespace</span><br><span class="line">&#123;</span><br><span class="line">  <span class="attr">"properties"</span>: &#123;</span><br><span class="line">    <span class="attr">"content"</span>:&#123;</span><br><span class="line">      <span class="attr">"type"</span>: <span class="string">"text"</span>,</span><br><span class="line">      <span class="attr">"analyzer"</span>: <span class="string">"whitespace"</span></span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">PUT stop_analyzer</span><br><span class="line">POST stop_analyzer/_mapping/stop</span><br><span class="line">&#123;</span><br><span class="line">  <span class="attr">"properties"</span>: &#123;</span><br><span class="line">    <span class="attr">"content"</span>:&#123;</span><br><span class="line">      <span class="attr">"type"</span>: <span class="string">"text"</span>,</span><br><span class="line">      <span class="attr">"analyzer"</span>: <span class="string">"stop"</span></span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">PUT keyword_analyzer</span><br><span class="line">POST keyword_analyzer/_mapping/keyword</span><br><span class="line">&#123;</span><br><span class="line">  <span class="attr">"properties"</span>: &#123;</span><br><span class="line">    <span class="attr">"content"</span>:&#123;</span><br><span class="line">      <span class="attr">"type"</span>: <span class="string">"text"</span>,</span><br><span class="line">      <span class="attr">"analyzer"</span>: <span class="string">"keyword"</span></span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">PUT language_analyzer</span><br><span class="line">POST language_analyzer/_mapping/language</span><br><span class="line">&#123;</span><br><span class="line">  <span class="attr">"properties"</span>: &#123;</span><br><span class="line">    <span class="attr">"content"</span>:&#123;</span><br><span class="line">      <span class="attr">"type"</span>: <span class="string">"text"</span>,</span><br><span class="line">      <span class="attr">"analyzer"</span>: <span class="string">"english"</span></span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>接著讓每個 Index 都建立一筆同樣的 Document。</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">POST _bulk</span><br><span class="line">&#123; <span class="attr">"create"</span> : &#123; <span class="attr">"_index"</span>: <span class="string">"standard_analyzer"</span>, <span class="attr">"_type"</span>:<span class="string">"standard"</span>, <span class="attr">"_id"</span>: <span class="number">1</span> &#125; &#125;</span><br><span class="line">&#123; <span class="attr">"content"</span>:<span class="string">"3. Semi-formal, as the name implies, is slightly more relaxed."</span>&#125;</span><br><span class="line">&#123; <span class="attr">"create"</span> : &#123; <span class="attr">"_index"</span>: <span class="string">"simple_analyzer"</span>, <span class="attr">"_type"</span>:<span class="string">"simple"</span>, <span class="attr">"_id"</span>: <span class="number">2</span> &#125; &#125;</span><br><span class="line">&#123; <span class="attr">"content"</span>:<span class="string">"3. Semi-formal, as the name implies, is slightly more relaxed."</span>&#125;</span><br><span class="line">&#123; <span class="attr">"create"</span> : &#123; <span class="attr">"_index"</span>: <span class="string">"whitespace_analyzer"</span>, <span class="attr">"_type"</span>:<span class="string">"whitespace"</span>, <span class="attr">"_id"</span>: <span class="number">3</span> &#125; &#125;</span><br><span class="line">&#123; <span class="attr">"content"</span>:<span class="string">"3. Semi-formal, as the name implies, is slightly more relaxed."</span>&#125;</span><br><span class="line">&#123; <span class="attr">"create"</span> : &#123; <span class="attr">"_index"</span>: <span class="string">"stop_analyzer"</span>, <span class="attr">"_type"</span>:<span class="string">"stop"</span>, <span class="attr">"_id"</span>: <span class="number">4</span> &#125; &#125;</span><br><span class="line">&#123; <span class="attr">"content"</span>:<span class="string">"3. Semi-formal, as the name implies, is slightly more relaxed."</span>&#125;</span><br><span class="line">&#123; <span class="attr">"create"</span> : &#123; <span class="attr">"_index"</span>: <span class="string">"keyword_analyzer"</span>, <span class="attr">"_type"</span>:<span class="string">"keyword"</span>, <span class="attr">"_id"</span>: <span class="number">5</span> &#125; &#125;</span><br><span class="line">&#123; <span class="attr">"content"</span>:<span class="string">"3. Semi-formal, as the name implies, is slightly more relaxed."</span>&#125;</span><br><span class="line">&#123; <span class="attr">"create"</span> : &#123; <span class="attr">"_index"</span>: <span class="string">"language_analyzer"</span>, <span class="attr">"_type"</span>:<span class="string">"language"</span>, <span class="attr">"_id"</span>: <span class="number">6</span> &#125; &#125;</span><br><span class="line">&#123; <span class="attr">"content"</span>:<span class="string">"3. Semi-formal, as the name implies, is slightly more relaxed."</span>&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="查看分析結果"><a class="header-anchor" href="#查看分析結果"></a>查看分析結果</h3>
+<h4 id="analyze"><a class="header-anchor" href="#analyze"></a>_analyze</h4>
+<p><code>_analyze</code> 可以直接看到分詞的結果。這裡以標準分析器為例子。</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">GET standard_analyzer/_analyze</span><br><span class="line">&#123;</span><br><span class="line">  <span class="attr">"field"</span>: <span class="string">"content"</span>,</span><br><span class="line">  <span class="attr">"text"</span>: <span class="string">"3. Semi-formal, as the name implies, is slightly more relaxed."</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>分詞的結果如下，token 就是分詞後的每個單詞。</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  <span class="attr">"tokens"</span> : [</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="attr">"token"</span> : <span class="string">"3"</span>,</span><br><span class="line">      <span class="attr">"start_offset"</span> : <span class="number">0</span>,</span><br><span class="line">      <span class="attr">"end_offset"</span> : <span class="number">1</span>,</span><br><span class="line">      <span class="attr">"type"</span> : <span class="string">"&lt;NUM&gt;"</span>,</span><br><span class="line">      <span class="attr">"position"</span> : <span class="number">0</span></span><br><span class="line">    &#125;,</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="attr">"token"</span> : <span class="string">"semi"</span>,</span><br><span class="line">      <span class="attr">"start_offset"</span> : <span class="number">3</span>,</span><br><span class="line">      <span class="attr">"end_offset"</span> : <span class="number">7</span>,</span><br><span class="line">      <span class="attr">"type"</span> : <span class="string">"&lt;ALPHANUM&gt;"</span>,</span><br><span class="line">      <span class="attr">"position"</span> : <span class="number">1</span></span><br><span class="line">    &#125;,</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="attr">"token"</span> : <span class="string">"formal"</span>,</span><br><span class="line">      <span class="attr">"start_offset"</span> : <span class="number">8</span>,</span><br><span class="line">      <span class="attr">"end_offset"</span> : <span class="number">14</span>,</span><br><span class="line">      <span class="attr">"type"</span> : <span class="string">"&lt;ALPHANUM&gt;"</span>,</span><br><span class="line">      <span class="attr">"position"</span> : <span class="number">2</span></span><br><span class="line">    &#125;,</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="attr">"token"</span> : <span class="string">"as"</span>,</span><br><span class="line">      <span class="attr">"start_offset"</span> : <span class="number">16</span>,</span><br><span class="line">      <span class="attr">"end_offset"</span> : <span class="number">18</span>,</span><br><span class="line">      <span class="attr">"type"</span> : <span class="string">"&lt;ALPHANUM&gt;"</span>,</span><br><span class="line">      <span class="attr">"position"</span> : <span class="number">3</span></span><br><span class="line">    &#125;,</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="attr">"token"</span> : <span class="string">"the"</span>,</span><br><span class="line">      <span class="attr">"start_offset"</span> : <span class="number">19</span>,</span><br><span class="line">      <span class="attr">"end_offset"</span> : <span class="number">22</span>,</span><br><span class="line">      <span class="attr">"type"</span> : <span class="string">"&lt;ALPHANUM&gt;"</span>,</span><br><span class="line">      <span class="attr">"position"</span> : <span class="number">4</span></span><br><span class="line">    &#125;,</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="attr">"token"</span> : <span class="string">"name"</span>,</span><br><span class="line">      <span class="attr">"start_offset"</span> : <span class="number">23</span>,</span><br><span class="line">      <span class="attr">"end_offset"</span> : <span class="number">27</span>,</span><br><span class="line">      <span class="attr">"type"</span> : <span class="string">"&lt;ALPHANUM&gt;"</span>,</span><br><span class="line">      <span class="attr">"position"</span> : <span class="number">5</span></span><br><span class="line">    &#125;,</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="attr">"token"</span> : <span class="string">"implies"</span>,</span><br><span class="line">      <span class="attr">"start_offset"</span> : <span class="number">28</span>,</span><br><span class="line">      <span class="attr">"end_offset"</span> : <span class="number">35</span>,</span><br><span class="line">      <span class="attr">"type"</span> : <span class="string">"&lt;ALPHANUM&gt;"</span>,</span><br><span class="line">      <span class="attr">"position"</span> : <span class="number">6</span></span><br><span class="line">    &#125;,</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="attr">"token"</span> : <span class="string">"is"</span>,</span><br><span class="line">      <span class="attr">"start_offset"</span> : <span class="number">37</span>,</span><br><span class="line">      <span class="attr">"end_offset"</span> : <span class="number">39</span>,</span><br><span class="line">      <span class="attr">"type"</span> : <span class="string">"&lt;ALPHANUM&gt;"</span>,</span><br><span class="line">      <span class="attr">"position"</span> : <span class="number">7</span></span><br><span class="line">    &#125;,</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="attr">"token"</span> : <span class="string">"slightly"</span>,</span><br><span class="line">      <span class="attr">"start_offset"</span> : <span class="number">40</span>,</span><br><span class="line">      <span class="attr">"end_offset"</span> : <span class="number">48</span>,</span><br><span class="line">      <span class="attr">"type"</span> : <span class="string">"&lt;ALPHANUM&gt;"</span>,</span><br><span class="line">      <span class="attr">"position"</span> : <span class="number">8</span></span><br><span class="line">    &#125;,</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="attr">"token"</span> : <span class="string">"more"</span>,</span><br><span class="line">      <span class="attr">"start_offset"</span> : <span class="number">49</span>,</span><br><span class="line">      <span class="attr">"end_offset"</span> : <span class="number">53</span>,</span><br><span class="line">      <span class="attr">"type"</span> : <span class="string">"&lt;ALPHANUM&gt;"</span>,</span><br><span class="line">      <span class="attr">"position"</span> : <span class="number">9</span></span><br><span class="line">    &#125;,</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="attr">"token"</span> : <span class="string">"relaxed"</span>,</span><br><span class="line">      <span class="attr">"start_offset"</span> : <span class="number">54</span>,</span><br><span class="line">      <span class="attr">"end_offset"</span> : <span class="number">61</span>,</span><br><span class="line">      <span class="attr">"type"</span> : <span class="string">"&lt;ALPHANUM&gt;"</span>,</span><br><span class="line">      <span class="attr">"position"</span> : <span class="number">10</span></span><br><span class="line">    &#125;</span><br><span class="line">  ]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="termvectors"><a class="header-anchor" href="#termvectors"></a>_termvectors</h4>
+<p>_termvectors 可以用來查看一個 Document 的單詞的訊息。</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">GET /standard_analyzer/standard/1/_termvectors</span><br><span class="line">&#123;</span><br><span class="line">  <span class="attr">"fields"</span>: [<span class="string">"content"</span>]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>下面是輸出的結果，在 term_vectors 的 terms 中就可以看到每個單詞的訊息。</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  <span class="attr">"_index"</span> : <span class="string">"standard_analyzer"</span>,</span><br><span class="line">  <span class="attr">"_type"</span> : <span class="string">"standard"</span>,</span><br><span class="line">  <span class="attr">"_id"</span> : <span class="string">"1"</span>,</span><br><span class="line">  <span class="attr">"_version"</span> : <span class="number">3</span>,</span><br><span class="line">  <span class="attr">"found"</span> : <span class="literal">true</span>,</span><br><span class="line">  <span class="attr">"took"</span> : <span class="number">16</span>,</span><br><span class="line">  <span class="attr">"term_vectors"</span> : &#123;</span><br><span class="line">    <span class="attr">"content"</span> : &#123;</span><br><span class="line">      <span class="attr">"field_statistics"</span> : &#123;</span><br><span class="line">        <span class="attr">"sum_doc_freq"</span> : <span class="number">11</span>,</span><br><span class="line">        <span class="attr">"doc_count"</span> : <span class="number">1</span>,</span><br><span class="line">        <span class="attr">"sum_ttf"</span> : <span class="number">11</span></span><br><span class="line">      &#125;,</span><br><span class="line">      <span class="attr">"terms"</span> : &#123;</span><br><span class="line">        <span class="attr">"3"</span> : &#123;</span><br><span class="line">          <span class="attr">"term_freq"</span> : <span class="number">1</span>,</span><br><span class="line">          <span class="attr">"tokens"</span> : [</span><br><span class="line">            &#123;</span><br><span class="line">              <span class="attr">"position"</span> : <span class="number">0</span>,</span><br><span class="line">              <span class="attr">"start_offset"</span> : <span class="number">0</span>,</span><br><span class="line">              <span class="attr">"end_offset"</span> : <span class="number">1</span></span><br><span class="line">            &#125;</span><br><span class="line">          ]</span><br><span class="line">        &#125;,</span><br><span class="line">        <span class="attr">"as"</span> : &#123;</span><br><span class="line">          <span class="attr">"term_freq"</span> : <span class="number">1</span>,</span><br><span class="line">          <span class="attr">"tokens"</span> : [</span><br><span class="line">            &#123;</span><br><span class="line">              <span class="attr">"position"</span> : <span class="number">3</span>,</span><br><span class="line">              <span class="attr">"start_offset"</span> : <span class="number">16</span>,</span><br><span class="line">              <span class="attr">"end_offset"</span> : <span class="number">18</span></span><br><span class="line">            &#125;</span><br><span class="line">          ]</span><br><span class="line">        &#125;,</span><br><span class="line">        <span class="attr">"formal"</span> : &#123;</span><br><span class="line">          <span class="attr">"term_freq"</span> : <span class="number">1</span>,</span><br><span class="line">          <span class="attr">"tokens"</span> : [</span><br><span class="line">            &#123;</span><br><span class="line">              <span class="attr">"position"</span> : <span class="number">2</span>,</span><br><span class="line">              <span class="attr">"start_offset"</span> : <span class="number">8</span>,</span><br><span class="line">              <span class="attr">"end_offset"</span> : <span class="number">14</span></span><br><span class="line">            &#125;</span><br><span class="line">          ]</span><br><span class="line">        &#125;,</span><br><span class="line">        <span class="attr">"implies"</span> : &#123;</span><br><span class="line">          <span class="attr">"term_freq"</span> : <span class="number">1</span>,</span><br><span class="line">          <span class="attr">"tokens"</span> : [</span><br><span class="line">            &#123;</span><br><span class="line">              <span class="attr">"position"</span> : <span class="number">6</span>,</span><br><span class="line">              <span class="attr">"start_offset"</span> : <span class="number">28</span>,</span><br><span class="line">              <span class="attr">"end_offset"</span> : <span class="number">35</span></span><br><span class="line">            &#125;</span><br><span class="line">          ]</span><br><span class="line">        &#125;,</span><br><span class="line">        <span class="attr">"is"</span> : &#123;</span><br><span class="line">          <span class="attr">"term_freq"</span> : <span class="number">1</span>,</span><br><span class="line">          <span class="attr">"tokens"</span> : [</span><br><span class="line">            &#123;</span><br><span class="line">              <span class="attr">"position"</span> : <span class="number">7</span>,</span><br><span class="line">              <span class="attr">"start_offset"</span> : <span class="number">37</span>,</span><br><span class="line">              <span class="attr">"end_offset"</span> : <span class="number">39</span></span><br><span class="line">            &#125;</span><br><span class="line">          ]</span><br><span class="line">        &#125;,</span><br><span class="line">        <span class="attr">"more"</span> : &#123;</span><br><span class="line">          <span class="attr">"term_freq"</span> : <span class="number">1</span>,</span><br><span class="line">          <span class="attr">"tokens"</span> : [</span><br><span class="line">            &#123;</span><br><span class="line">              <span class="attr">"position"</span> : <span class="number">9</span>,</span><br><span class="line">              <span class="attr">"start_offset"</span> : <span class="number">49</span>,</span><br><span class="line">              <span class="attr">"end_offset"</span> : <span class="number">53</span></span><br><span class="line">            &#125;</span><br><span class="line">          ]</span><br><span class="line">        &#125;,</span><br><span class="line">        <span class="attr">"name"</span> : &#123;</span><br><span class="line">          <span class="attr">"term_freq"</span> : <span class="number">1</span>,</span><br><span class="line">          <span class="attr">"tokens"</span> : [</span><br><span class="line">            &#123;</span><br><span class="line">              <span class="attr">"position"</span> : <span class="number">5</span>,</span><br><span class="line">              <span class="attr">"start_offset"</span> : <span class="number">23</span>,</span><br><span class="line">              <span class="attr">"end_offset"</span> : <span class="number">27</span></span><br><span class="line">            &#125;</span><br><span class="line">          ]</span><br><span class="line">        &#125;,</span><br><span class="line">        <span class="attr">"relaxed"</span> : &#123;</span><br><span class="line">          <span class="attr">"term_freq"</span> : <span class="number">1</span>,</span><br><span class="line">          <span class="attr">"tokens"</span> : [</span><br><span class="line">            &#123;</span><br><span class="line">              <span class="attr">"position"</span> : <span class="number">10</span>,</span><br><span class="line">              <span class="attr">"start_offset"</span> : <span class="number">54</span>,</span><br><span class="line">              <span class="attr">"end_offset"</span> : <span class="number">61</span></span><br><span class="line">            &#125;</span><br><span class="line">          ]</span><br><span class="line">        &#125;,</span><br><span class="line">        <span class="attr">"semi"</span> : &#123;</span><br><span class="line">          <span class="attr">"term_freq"</span> : <span class="number">1</span>,</span><br><span class="line">          <span class="attr">"tokens"</span> : [</span><br><span class="line">            &#123;</span><br><span class="line">              <span class="attr">"position"</span> : <span class="number">1</span>,</span><br><span class="line">              <span class="attr">"start_offset"</span> : <span class="number">3</span>,</span><br><span class="line">              <span class="attr">"end_offset"</span> : <span class="number">7</span></span><br><span class="line">            &#125;</span><br><span class="line">          ]</span><br><span class="line">        &#125;,</span><br><span class="line">        <span class="attr">"slightly"</span> : &#123;</span><br><span class="line">          <span class="attr">"term_freq"</span> : <span class="number">1</span>,</span><br><span class="line">          <span class="attr">"tokens"</span> : [</span><br><span class="line">            &#123;</span><br><span class="line">              <span class="attr">"position"</span> : <span class="number">8</span>,</span><br><span class="line">              <span class="attr">"start_offset"</span> : <span class="number">40</span>,</span><br><span class="line">              <span class="attr">"end_offset"</span> : <span class="number">48</span></span><br><span class="line">            &#125;</span><br><span class="line">          ]</span><br><span class="line">        &#125;,</span><br><span class="line">        <span class="attr">"the"</span> : &#123;</span><br><span class="line">          <span class="attr">"term_freq"</span> : <span class="number">1</span>,</span><br><span class="line">          <span class="attr">"tokens"</span> : [</span><br><span class="line">            &#123;</span><br><span class="line">              <span class="attr">"position"</span> : <span class="number">4</span>,</span><br><span class="line">              <span class="attr">"start_offset"</span> : <span class="number">19</span>,</span><br><span class="line">              <span class="attr">"end_offset"</span> : <span class="number">22</span></span><br><span class="line">            &#125;</span><br><span class="line">          ]</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="analyze-v-s-termvectors"><a class="header-anchor" href="#analyze-v-s-termvectors"></a>_analyze v.s _termvectors</h4>
+<p>以上兩個查看分析器結果的 API 差別在於 _analyze 是在建立前先查看使用這個分析器所做出的分詞結果會是甚麼。而 _termvectors 是用來顯示分詞的訊息，所以已經是寫入 Document 經過分析器做好的結果了，可以用在建好之後查看分詞結果。</p>
+<h3 id="開始搜尋"><a class="header-anchor" href="#開始搜尋"></a>開始搜尋</h3>
+<p>以下以幾種不同的搜尋內容來看各個分析器所造成的影響。</p>
+<p><strong>1. 搜尋 <code>semi</code></strong></p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">GET _search</span><br><span class="line">&#123;</span><br><span class="line">    <span class="attr">"query"</span>:&#123;</span><br><span class="line">        <span class="attr">"term"</span>:&#123;</span><br><span class="line">            <span class="attr">"content"</span>: <span class="string">"semi"</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>下面是搜尋的結果，可以看到搜尋到了 simple、standard、language、stop 四個分析器的結果。因為這四個分析器在進行分詞時，會把 semi 分成單詞存在反向索引中，所以可以被找到。</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  <span class="attr">"took"</span> : <span class="number">1</span>,</span><br><span class="line">  <span class="attr">"timed_out"</span> : <span class="literal">false</span>,</span><br><span class="line">  <span class="attr">"_shards"</span> : &#123;</span><br><span class="line">    <span class="attr">"total"</span> : <span class="number">51</span>,</span><br><span class="line">    <span class="attr">"successful"</span> : <span class="number">51</span>,</span><br><span class="line">    <span class="attr">"skipped"</span> : <span class="number">0</span>,</span><br><span class="line">    <span class="attr">"failed"</span> : <span class="number">0</span></span><br><span class="line">  &#125;,</span><br><span class="line">  <span class="attr">"hits"</span> : &#123;</span><br><span class="line">    <span class="attr">"total"</span> : <span class="number">4</span>,</span><br><span class="line">    <span class="attr">"max_score"</span> : <span class="number">0.2876821</span>,</span><br><span class="line">    <span class="attr">"hits"</span> : [</span><br><span class="line">      &#123;</span><br><span class="line">        <span class="attr">"_index"</span> : <span class="string">"language_analyzer"</span>,</span><br><span class="line">        <span class="attr">"_type"</span> : <span class="string">"language"</span>,</span><br><span class="line">        <span class="attr">"_id"</span> : <span class="string">"6"</span>,</span><br><span class="line">        <span class="attr">"_score"</span> : <span class="number">0.2876821</span>,</span><br><span class="line">        <span class="attr">"_source"</span> : &#123;</span><br><span class="line">          <span class="attr">"content"</span> : <span class="string">"3. Semi-formal, as the name implies, is slightly more relaxed."</span></span><br><span class="line">        &#125;</span><br><span class="line">      &#125;,</span><br><span class="line">      &#123;</span><br><span class="line">        <span class="attr">"_index"</span> : <span class="string">"simple_analyzer"</span>,</span><br><span class="line">        <span class="attr">"_type"</span> : <span class="string">"simple"</span>,</span><br><span class="line">        <span class="attr">"_id"</span> : <span class="string">"2"</span>,</span><br><span class="line">        <span class="attr">"_score"</span> : <span class="number">0.2876821</span>,</span><br><span class="line">        <span class="attr">"_source"</span> : &#123;</span><br><span class="line">          <span class="attr">"content"</span> : <span class="string">"3. Semi-formal, as the name implies, is slightly more relaxed."</span></span><br><span class="line">        &#125;</span><br><span class="line">      &#125;,</span><br><span class="line">      &#123;</span><br><span class="line">        <span class="attr">"_index"</span> : <span class="string">"stop_analyzer"</span>,</span><br><span class="line">        <span class="attr">"_type"</span> : <span class="string">"stop"</span>,</span><br><span class="line">        <span class="attr">"_id"</span> : <span class="string">"4"</span>,</span><br><span class="line">        <span class="attr">"_score"</span> : <span class="number">0.2876821</span>,</span><br><span class="line">        <span class="attr">"_source"</span> : &#123;</span><br><span class="line">          <span class="attr">"content"</span> : <span class="string">"3. Semi-formal, as the name implies, is slightly more relaxed."</span></span><br><span class="line">        &#125;</span><br><span class="line">      &#125;,</span><br><span class="line">      &#123;</span><br><span class="line">        <span class="attr">"_index"</span> : <span class="string">"standard_analyzer"</span>,</span><br><span class="line">        <span class="attr">"_type"</span> : <span class="string">"standard"</span>,</span><br><span class="line">        <span class="attr">"_id"</span> : <span class="string">"1"</span>,</span><br><span class="line">        <span class="attr">"_score"</span> : <span class="number">0.2876821</span>,</span><br><span class="line">        <span class="attr">"_source"</span> : &#123;</span><br><span class="line">          <span class="attr">"content"</span> : <span class="string">"3. Semi-formal, as the name implies, is slightly more relaxed."</span></span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    ]</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><strong>2. 搜尋 <code>Semi-formal,</code></strong></p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">GET _search</span><br><span class="line">&#123;</span><br><span class="line">    <span class="attr">"query"</span>:&#123;</span><br><span class="line">        <span class="attr">"term"</span>:&#123;</span><br><span class="line">            <span class="attr">"content"</span>: <span class="string">"Semi-formal,"</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>下面是搜尋的結果，可以看到只找到了 whitespace 這個分析器的結果。這是因為 whitespace 只會在空格處做分詞，所以 <code>Semi-formal,</code> 會被劃分為一個單詞。</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  <span class="attr">"took"</span> : <span class="number">0</span>,</span><br><span class="line">  <span class="attr">"timed_out"</span> : <span class="literal">false</span>,</span><br><span class="line">  <span class="attr">"_shards"</span> : &#123;</span><br><span class="line">    <span class="attr">"total"</span> : <span class="number">36</span>,</span><br><span class="line">    <span class="attr">"successful"</span> : <span class="number">36</span>,</span><br><span class="line">    <span class="attr">"skipped"</span> : <span class="number">0</span>,</span><br><span class="line">    <span class="attr">"failed"</span> : <span class="number">0</span></span><br><span class="line">  &#125;,</span><br><span class="line">  <span class="attr">"hits"</span> : &#123;</span><br><span class="line">    <span class="attr">"total"</span> : <span class="number">1</span>,</span><br><span class="line">    <span class="attr">"max_score"</span> : <span class="number">0.2876821</span>,</span><br><span class="line">    <span class="attr">"hits"</span> : [</span><br><span class="line">      &#123;</span><br><span class="line">        <span class="attr">"_index"</span> : <span class="string">"whitespace_analyzer"</span>,</span><br><span class="line">        <span class="attr">"_type"</span> : <span class="string">"whitespace"</span>,</span><br><span class="line">        <span class="attr">"_id"</span> : <span class="string">"3"</span>,</span><br><span class="line">        <span class="attr">"_score"</span> : <span class="number">0.2876821</span>,</span><br><span class="line">        <span class="attr">"_source"</span> : &#123;</span><br><span class="line">          <span class="attr">"content"</span> : <span class="string">"3. Semi-formal, as the name implies, is slightly more relaxed."</span></span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    ]</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><strong>3. 搜尋 <code>is</code></strong></p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">GET _search</span><br><span class="line">&#123;</span><br><span class="line">    <span class="attr">"query"</span>:&#123;</span><br><span class="line">        <span class="attr">"term"</span>:&#123;</span><br><span class="line">            <span class="attr">"content"</span>: <span class="string">"is"</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>下面是輸出的結果，可以看到搜尋到了 simple、standard、whitespace 三個分析器的結果。其他三個因為都沒有提取 is 這個單詞作為索引，所以會找不到。像是 stop 分析器就把 is 過濾掉了。</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  <span class="attr">"took"</span> : <span class="number">0</span>,</span><br><span class="line">  <span class="attr">"timed_out"</span> : <span class="literal">false</span>,</span><br><span class="line">  <span class="attr">"_shards"</span> : &#123;</span><br><span class="line">    <span class="attr">"total"</span> : <span class="number">51</span>,</span><br><span class="line">    <span class="attr">"successful"</span> : <span class="number">51</span>,</span><br><span class="line">    <span class="attr">"skipped"</span> : <span class="number">0</span>,</span><br><span class="line">    <span class="attr">"failed"</span> : <span class="number">0</span></span><br><span class="line">  &#125;,</span><br><span class="line">  <span class="attr">"hits"</span> : &#123;</span><br><span class="line">    <span class="attr">"total"</span> : <span class="number">3</span>,</span><br><span class="line">    <span class="attr">"max_score"</span> : <span class="number">0.2876821</span>,</span><br><span class="line">    <span class="attr">"hits"</span> : [</span><br><span class="line">      &#123;</span><br><span class="line">        <span class="attr">"_index"</span> : <span class="string">"simple_analyzer"</span>,</span><br><span class="line">        <span class="attr">"_type"</span> : <span class="string">"simple"</span>,</span><br><span class="line">        <span class="attr">"_id"</span> : <span class="string">"2"</span>,</span><br><span class="line">        <span class="attr">"_score"</span> : <span class="number">0.2876821</span>,</span><br><span class="line">        <span class="attr">"_source"</span> : &#123;</span><br><span class="line">          <span class="attr">"content"</span> : <span class="string">"3. Semi-formal, as the name implies, is slightly more relaxed."</span></span><br><span class="line">        &#125;</span><br><span class="line">      &#125;,</span><br><span class="line">      &#123;</span><br><span class="line">        <span class="attr">"_index"</span> : <span class="string">"standard_analyzer"</span>,</span><br><span class="line">        <span class="attr">"_type"</span> : <span class="string">"standard"</span>,</span><br><span class="line">        <span class="attr">"_id"</span> : <span class="string">"1"</span>,</span><br><span class="line">        <span class="attr">"_score"</span> : <span class="number">0.2876821</span>,</span><br><span class="line">        <span class="attr">"_source"</span> : &#123;</span><br><span class="line">          <span class="attr">"content"</span> : <span class="string">"3. Semi-formal, as the name implies, is slightly more relaxed."</span></span><br><span class="line">        &#125;</span><br><span class="line">      &#125;,</span><br><span class="line">      &#123;</span><br><span class="line">        <span class="attr">"_index"</span> : <span class="string">"whitespace_analyzer"</span>,</span><br><span class="line">        <span class="attr">"_type"</span> : <span class="string">"whitespace"</span>,</span><br><span class="line">        <span class="attr">"_id"</span> : <span class="string">"3"</span>,</span><br><span class="line">        <span class="attr">"_score"</span> : <span class="number">0.2876821</span>,</span><br><span class="line">        <span class="attr">"_source"</span> : &#123;</span><br><span class="line">          <span class="attr">"content"</span> : <span class="string">"3. Semi-formal, as the name implies, is slightly more relaxed."</span></span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    ]</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><strong>4. 搜尋 <code>3. Semi-formal, as the name implies, is slightly more relaxed.</code></strong></p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">GET _search</span><br><span class="line">&#123;</span><br><span class="line">    <span class="attr">"query"</span>:&#123;</span><br><span class="line">        <span class="attr">"term"</span>:&#123;</span><br><span class="line">            <span class="attr">"content"</span>: <span class="string">"3. Semi-formal, as the name implies, is slightly more relaxed."</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>下面是輸出的結果，可以看到只找到了 keyword 分析器的結果，因為 keyword 不會進行分詞。</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  <span class="attr">"took"</span> : <span class="number">0</span>,</span><br><span class="line">  <span class="attr">"timed_out"</span> : <span class="literal">false</span>,</span><br><span class="line">  <span class="attr">"_shards"</span> : &#123;</span><br><span class="line">    <span class="attr">"total"</span> : <span class="number">51</span>,</span><br><span class="line">    <span class="attr">"successful"</span> : <span class="number">51</span>,</span><br><span class="line">    <span class="attr">"skipped"</span> : <span class="number">0</span>,</span><br><span class="line">    <span class="attr">"failed"</span> : <span class="number">0</span></span><br><span class="line">  &#125;,</span><br><span class="line">  <span class="attr">"hits"</span> : &#123;</span><br><span class="line">    <span class="attr">"total"</span> : <span class="number">1</span>,</span><br><span class="line">    <span class="attr">"max_score"</span> : <span class="number">0.2876821</span>,</span><br><span class="line">    <span class="attr">"hits"</span> : [</span><br><span class="line">      &#123;</span><br><span class="line">        <span class="attr">"_index"</span> : <span class="string">"keyword_analyzer"</span>,</span><br><span class="line">        <span class="attr">"_type"</span> : <span class="string">"keyword"</span>,</span><br><span class="line">        <span class="attr">"_id"</span> : <span class="string">"5"</span>,</span><br><span class="line">        <span class="attr">"_score"</span> : <span class="number">0.2876821</span>,</span><br><span class="line">        <span class="attr">"_source"</span> : &#123;</span><br><span class="line">          <span class="attr">"content"</span> : <span class="string">"3. Semi-formal, as the name implies, is slightly more relaxed."</span></span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    ]</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="Summary"><a class="header-anchor" href="#Summary"></a>Summary</h2>
+<p>本篇介紹了分析器的概念以及 Elasticsearch 內建的一些分析器，如果想要更了解這些分析器更詳細的使用請參考 <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/analysis.html" target="_blank" rel="noopener">Elasticsearch 官網</a>。</p>
+<h2 id="參考"><a class="header-anchor" href="#參考"></a>參考</h2>
+<p>[1] <a href="https://tomme.me/elasticsearch-analyzer/" target="_blank" rel="noopener">Elasticsearch當中的分析器-Analyzer</a><br>
+[2] <a href="https://www.cnblogs.com/xing901022/p/5348737.html" target="_blank" rel="noopener">在Elasticsearch中查詢Term Vectors詞條向量信息</a><br>
+[3] <a href="https://elasticsearch.cn/article/771" target="_blank" rel="noopener">掌握 analyze API，一舉搞定 Elasticsearch 分詞難題</a><br>
+[4] <a href="https://www.twblogs.net/a/5b904e312b7177672218d7b4" target="_blank" rel="noopener">正則表達式單詞邊界和非單詞邊界</a><br>
+[5] <a href="https://learnku.com/articles/35136" target="_blank" rel="noopener">通過 Analyzer 進行分詞</a><br>
+[6] <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/analysis.html" target="_blank" rel="noopener">Text analysis</a><br>
+[7] <a href="https://www.jianshu.com/p/c47cd5313653" target="_blank" rel="noopener">認識 ElasticSearch Analyzer 分析器</a><br>
+[8] <a href="https://mednoter.com/all-about-analyzer-part-one.html" target="_blank" rel="noopener">Elasticsearch Analyzer 的內部機制</a><br>
+[9] <a href="https://www.itread01.com/content/1544256247.html" target="_blank" rel="noopener">中英文停用詞（stop word）列表</a></p>
+
+    </div>
+
+    
+    
+    
+      
+  <div class="popular-posts-header">系列文章</div>
+  <ul class="popular-posts">
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/elasticsearch-1_concept/" rel="bookmark">Elasticsearch (一) - 基本概念</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/elasticsearch-4_query-sql-xpack/" rel="bookmark">Elasticsearch (四) - 使用 SQL 語法進行查詢</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/elasticsearch-7_cluster-kibana-docker-compose/" rel="bookmark">Elasticsearch (七) - 多節點 Cluster 建立搭配 Kibana</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/elasticsearch-2_kibana-command-dsl-docker-compose/" rel="bookmark">Elasticsearch (二) - 快速搭建與 Document 的建立、更新和刪除</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/elasticsearch-3_query-filter/" rel="bookmark">Elasticsearch (三) - 查詢和過濾</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/elasticsearch-6_aggregation/" rel="bookmark">Elasticsearch (六) - Aggregation 聚合</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/redis-2_key-command/" rel="bookmark">Redis (二) - Key 的管理與操作</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/redis-5_server-management/" rel="bookmark">Redis (五) - 管理 Redis Server</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/redis-3_pubsub/" rel="bookmark">Redis (三) - Pub/Sub 發佈訂閱</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/redis-1_concept-docker-install-datatype/" rel="bookmark">Redis (一) - 基本概念</a></div>
+    </li>
+  </ul>
+
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/tags/NoSQL/" rel="tag"><i class="fa fa-tag"></i> NoSQL</a>
+              <a href="/tags/Elasticsearch/" rel="tag"><i class="fa fa-tag"></i> Elasticsearch</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/elasticsearch-4_query-sql-xpack/" rel="prev" title="Elasticsearch (四) - 使用 SQL 語法進行查詢">
+      <i class="fa fa-chevron-left"></i> Elasticsearch (四) - 使用 SQL 語法進行查詢
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/elasticsearch-6_aggregation/" rel="next" title="Elasticsearch (六) - Aggregation 聚合">
+      Elasticsearch (六) - Aggregation 聚合 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<!-- tienyulin.github -->
+<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-8271558544185929"
+     data-ad-slot="8611071932"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#分析器的工作流程"><span class="nav-number">1.</span> <span class="nav-text">分析器的工作流程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Character-Filters-字符過濾器"><span class="nav-number">1.1.</span> <span class="nav-text">Character Filters (字符過濾器)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Tokenizer-分詞器"><span class="nav-number">1.2.</span> <span class="nav-text">Tokenizer (分詞器)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Token-Filter-單詞過濾器"><span class="nav-number">1.3.</span> <span class="nav-text">Token Filter (單詞過濾器)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#範例"><span class="nav-number">1.4.</span> <span class="nav-text">範例</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#內建的分析器"><span class="nav-number">2.</span> <span class="nav-text">內建的分析器</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Standard-Analyzer-標準分析器"><span class="nav-number">2.1.</span> <span class="nav-text">Standard Analyzer (標準分析器)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Simple-Analyzer-簡單分析器"><span class="nav-number">2.2.</span> <span class="nav-text">Simple Analyzer (簡單分析器)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Whitespace-Analyzer-空格分析器"><span class="nav-number">2.3.</span> <span class="nav-text">Whitespace Analyzer (空格分析器)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Stop-Analyzer-停用詞分析器"><span class="nav-number">2.4.</span> <span class="nav-text">Stop Analyzer (停用詞分析器)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Keyword-Analyzer-關鍵字分析器"><span class="nav-number">2.5.</span> <span class="nav-text">Keyword Analyzer (關鍵字分析器)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Language-Analyzer-語言分析器"><span class="nav-number">2.6.</span> <span class="nav-text">Language Analyzer (語言分析器)</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#使用內建分析器"><span class="nav-number">3.</span> <span class="nav-text">使用內建分析器</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#查看分析結果"><span class="nav-number">3.1.</span> <span class="nav-text">查看分析結果</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#analyze"><span class="nav-number">3.1.1.</span> <span class="nav-text">_analyze</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#termvectors"><span class="nav-number">3.1.2.</span> <span class="nav-text">_termvectors</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#analyze-v-s-termvectors"><span class="nav-number">3.1.3.</span> <span class="nav-text">_analyze v.s _termvectors</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#開始搜尋"><span class="nav-number">3.2.</span> <span class="nav-text">開始搜尋</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Summary"><span class="nav-number">4.</span> <span class="nav-text">Summary</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#參考"><span class="nav-number">5.</span> <span class="nav-text">參考</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Tien-Yu Lin"
+      src="/images/tienyu.jpg">
+  <p class="site-author-name" itemprop="name">Tien-Yu Lin</p>
+  <div class="site-description" itemprop="description">Try not to become a man of success, but rather try to become a man of value. - Albert Einstein</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">45</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">28</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">29</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/tienyulin" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;tienyulin" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://hub.docker.com/u/tienyu" title="DockerHub → https:&#x2F;&#x2F;hub.docker.com&#x2F;u&#x2F;tienyu" rel="noopener" target="_blank"><i class="fab fa-docker fa-fw"></i>DockerHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:t.tienyulin@gmail.com" title="E-Mail → mailto:t.tienyulin@gmail.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.linkedin.com/in/tony-lin-79733714b/" title="Linkedin → https:&#x2F;&#x2F;www.linkedin.com&#x2F;in&#x2F;tony-lin-79733714b&#x2F;" rel="noopener" target="_blank"><i class="fab fa-linkedin fa-fw"></i>Linkedin</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+      <!--google_adsense-->	      
+      	 
+        <div class="links-of-blogroll-title">	     
+          <i class="fa fa-google"></i> AdSense	       
+          <ins class="adsbygoogle"	      
+              style="display:block"	     
+              data-ad-client="ca-pub-8271558544185929"	
+              data-ad-slot="8611071932"	
+              data-ad-format="auto"	
+              data-full-width-responsive="true"></ins>	
+          <script>	
+            (adsbygoogle = window.adsbygoogle || []).push({});	
+          </script>	
+        </div>	
+      	
+      <!--/google_adsense-->
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Tien-Yu Lin</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a>
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="Total Visitors">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="Total Views">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+  <script>
+    (function(){
+      var canonicalURL, curProtocol;
+      //Get the <link> tag
+      var x=document.getElementsByTagName("link");
+		//Find the last canonical URL
+		if(x.length > 0){
+			for (i=0;i<x.length;i++){
+				if(x[i].rel.toLowerCase() == 'canonical' && x[i].href){
+					canonicalURL=x[i].href;
+				}
+			}
+		}
+    //Get protocol
+	    if (!canonicalURL){
+	    	curProtocol = window.location.protocol.split(':')[0];
+	    }
+	    else{
+	    	curProtocol = canonicalURL.split(':')[0];
+	    }
+      //Get current URL if the canonical URL does not exist
+	    if (!canonicalURL) canonicalURL = window.location.href;
+	    //Assign script content. Replace current URL with the canonical URL
+      !function(){var e=/([http|https]:\/\/[a-zA-Z0-9\_\.]+\.baidu\.com)/gi,r=canonicalURL,t=document.referrer;if(!e.test(r)){var n=(String(curProtocol).toLowerCase() === 'https')?"https://sp0.baidu.com/9_Q4simg2RQJ8t7jm9iCKT-xh_/s.gif":"//api.share.baidu.com/s.gif";t?(n+="?r="+encodeURIComponent(document.referrer),r&&(n+="&l="+r)):r&&(n+="?l="+r);var i=new Image;i.src=n}}(window);})();
+  </script>
+
+
+
+
+  
+<script src="//cdn.jsdelivr.net/npm/algoliasearch@4/dist/algoliasearch-lite.umd.js"></script>
+<script src="//cdn.jsdelivr.net/npm/instantsearch.js@4/dist/instantsearch.production.min.js"></script>
+<script src="/js/algolia-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://tienyulin.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  var disqus_config = function() {
+    this.page.url = "https://tienyulin.github.io/elasticsearch-5_analyzer/";
+    this.page.identifier = "elasticsearch-5_analyzer/";
+    this.page.title = "Elasticsearch (五) - Analyzer 分析器";
+    };
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: disqus_config
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://tienyulin.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>

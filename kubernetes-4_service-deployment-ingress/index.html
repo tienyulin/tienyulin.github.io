@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="/lib/pace/pace-theme-bounce.min.css">
+  <script src="/lib/pace/pace.min.js"></script>
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"tienyulin.github.io","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"appID":"CKNGBQCM6Q","apiKey":"aa8f782cff7f67f246a3fd15f8592fc1","indexName":"tienyulin.github.com","hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="上一篇 我們介紹了如何建立最基本的 Pod 和連線到應用的方式，然而這樣的建立方式是無法滿足實際應用中的需求的。實際應用上會有多伺服器運行同個應用、伺服器故障需要故障轉移等等的問題，因此 Kubernetes 提供了一些 Pod 的進階功能，如下 :  Service Deployment Ingress">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Kubernetes (四) - Pod 進階應用 Service、Deployment、Ingress">
+<meta property="og:url" content="https://tienyulin.github.io/kubernetes-4_service-deployment-ingress/">
+<meta property="og:site_name" content="Tienyu Note">
+<meta property="og:description" content="上一篇 我們介紹了如何建立最基本的 Pod 和連線到應用的方式，然而這樣的建立方式是無法滿足實際應用中的需求的。實際應用上會有多伺服器運行同個應用、伺服器故障需要故障轉移等等的問題，因此 Kubernetes 提供了一些 Pod 的進階功能，如下 :  Service Deployment Ingress">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://i.imgur.com/FvUFz9z.png">
+<meta property="og:image" content="https://theithollow.com/wp-content/uploads/2019/01/image-20.png">
+<meta property="og:image" content="https://theithollow.com/wp-content/uploads/2019/01/image-9-1024x375.png">
+<meta property="og:image" content="https://i.imgur.com/1nvioMZ.gif">
+<meta property="og:image" content="https://i.imgur.com/ZIRXRTL.png">
+<meta property="og:image" content="https://i.imgur.com/QkKTAGf.png">
+<meta property="og:image" content="https://i.imgur.com/xZzcSBW.png">
+<meta property="og:image" content="https://i.imgur.com/ecmuJDm.png">
+<meta property="og:image" content="https://i.imgur.com/KMhs4QJ.png">
+<meta property="og:image" content="https://i.imgur.com/XNhXj6s.png">
+<meta property="article:published_time" content="2020-08-30T00:00:00.000Z">
+<meta property="article:modified_time" content="2020-08-30T00:00:00.000Z">
+<meta property="article:author" content="Tien-Yu Lin">
+<meta property="article:tag" content="Container">
+<meta property="article:tag" content="Docker">
+<meta property="article:tag" content="Kubernetes">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://i.imgur.com/FvUFz9z.png">
+
+<link rel="canonical" href="https://tienyulin.github.io/kubernetes-4_service-deployment-ingress/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>Kubernetes (四) - Pod 進階應用 Service、Deployment、Ingress | Tienyu Note</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-169323232-1"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'UA-169323232-1');
+      }
+    </script>
+
+
+
+
+
+
+
+<script data-ad-client="ca-pub-8271558544185929" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Tienyu Note</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">Fly with me</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives<span class="badge">45</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-folder-open fa-fw"></i>Categories<span class="badge">28</span></a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags<span class="badge">29</span></a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-sitemap">
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-sitemap fa-fw"></i>Sitemap</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container"></div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="algolia-results">
+  <div id="algolia-stats"></div>
+  <div id="algolia-hits"></div>
+  <div id="algolia-pagination" class="algolia-pagination"></div>
+</div>
+
+      
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/tienyulin" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="https://tienyulin.github.io/kubernetes-4_service-deployment-ingress/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/tienyu.jpg">
+      <meta itemprop="name" content="Tien-Yu Lin">
+      <meta itemprop="description" content="Try not to become a man of success, but rather try to become a man of value. - Albert Einstein">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Tienyu Note">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Kubernetes (四) - Pod 進階應用 Service、Deployment、Ingress
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2020-08-30 00:00:00" itemprop="dateCreated datePublished" datetime="2020-08-30T00:00:00+00:00">2020-08-30</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Kubernetes/" itemprop="url" rel="index"><span itemprop="name">Kubernetes</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="Views" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">Views: </span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus: </span>
+    
+    <a title="disqus" href="/kubernetes-4_service-deployment-ingress/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="kubernetes-4_service-deployment-ingress/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p><a href="https://tienyulin.github.io/kubernetes-pod/">上一篇</a> 我們介紹了如何建立最基本的 Pod 和連線到應用的方式，然而這樣的建立方式是無法滿足實際應用中的需求的。實際應用上會有多伺服器運行同個應用、伺服器故障需要故障轉移等等的問題，因此 Kubernetes 提供了一些 Pod 的進階功能，如下 :</p>
+<ul>
+<li>Service</li>
+<li>Deployment</li>
+<li>Ingress</li>
+</ul>
+<a id="more"></a>
+<h2 id="Service"><a class="header-anchor" href="#Service"></a>Service</h2>
+<p>Service 是一個抽象化的物件，它定義了一群的 Pod 和存取這些 Pod 的規則。簡單來說就是要讓使用者和 Kubernetes Cluster 進行隔離，使用者只需要告訴 Service 我的請求而不需要知道誰會幫我處理也不需要知道處理的過程和細節，Service 收到請求後就會依照定義的規則將請求送到對應的 Pod。</p>
+<p>Pod 和 Pod 之間的也會透過 Service 來存取。</p>
+<p><img src="https://i.imgur.com/FvUFz9z.png" alt="service" width="300" height="300"></p>
+<h3 id="Service-處理-Port-對應"><a class="header-anchor" href="#Service-處理-Port-對應"></a>Service 處理 Port 對應</h3>
+<p><a href="https://tienyulin.github.io/kubernetes-pod/">上一篇</a> 我們使用了 port-forward 來將 Pod 的 Port 對應到主機，而 Service 也可以指定對應的 Port 讓 Pod 可以被外部存取。</p>
+<p>這裡我們先使用 kubectl 的 <code>expose</code> 指令來讓 Pod 的 Port 開放給外部存取，<code>expose</code> 指令會自動建立一個 Service。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">kubectl expose pod &lt;pod name&gt; --<span class="built_in">type</span>=&lt;service <span class="built_in">type</span>&gt; --name=&lt;service name&gt; \</span><br><span class="line">--port=&lt;port&gt; --target-port=&lt;target port&gt;</span><br></pre></td></tr></table></figure>
+<p>type 可以指定這個 Service 的類型，常見的類型如下 :</p>
+<ul>
+<li>ClusterIP : 預設類型，使用 Cluster 內部的 IP 來暴露 Service，因此只能在 Cluster 內部存取。</li>
+<li>NodePort : 使用 Node 的 IP 和 Port 來暴露 Service，在 Cluster 外可以透過 NodeIP:NodePort 來存取 Service。而 Cluster 內部所需的 Cluster IP 會自動被建立。</li>
+<li>LoadBalancer : 使用雲端供應商提供的 LoadBalancer 來開放 Service，會自動建立相對應的 NodePort 和 Cluster IP。</li>
+<li>ExternalName : 將 Service 關聯到 ExternalName，也就是 Domain。例如 : <a href="http://foo.sample.com" target="_blank" rel="noopener">foo.sample.com</a>。</li>
+</ul>
+<p>port 和 target-port 我們搭配下面這張圖來說明 Kubernetes 外部是如何連進到內部的 Container。這裡我們以 NodePort 這個類型來介紹。</p>
+<p>首先外部會先向 NodeIP:NodePort 發出 Request，這個 NodePort 再建立 Service 時就會被開放給外部存取。接著會再找到 Service 所開放的 Port 將 Request 傳入，這個 Service 開放的 Port 就是 <code>kubectl expose</code> 所要定義的 <code>port</code>。</p>
+<p>當 Service 接收到 Request 時，會再依照目標的 Pod 所開放的 Port 將 Request 轉傳給 Pod。這裡目標 Pod 所開放的 Port 即為 <code>kubectl expose</code> 所要定義的 <code>target-port</code>，而這個 target-port 也就是 Container 的 Port。</p>
+<p><img src="https://theithollow.com/wp-content/uploads/2019/01/image-20.png" alt="expose port"></p>
+<p><strong>範例</strong><br>
+這個範例的 Type 我們使用 NodePort，因為要讓瀏覽器可以連上必須讓 Service 開放給外部連線。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl expose pod kubernetes-pod --<span class="built_in">type</span>=NodePort</span><br><span class="line"></span><br><span class="line">service/kubernetes-pod exposed</span><br></pre></td></tr></table></figure>
+<p>這裡可以看到沒有指定 port 和 target-port，如果沒有指定的話 target-port 會自動代入 Container 開放的 Port，port 也會自動代入和 target-port 一樣的值。</p>
+<p>而上方有提到 Service 建立時會自動開放 NodePort，讓外部透過這個 NodePort 連到對應的 Service。Kubernetes 會從 30000-32767 這段區間自動分配 NodePort 對應到 Service。</p>
+<p>使用 <code>kubectl get services</code> 來查看一下剛剛建立的 Service，可以看到 <code>kubernetes-pod</code> 這個 Service 已經被建立起來了。而後面的 PORT <code>9000:31847</code> 的 9000 即為 Service 開放的 Port 對應到被自動指派的 NodePort 31847。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl get services</span><br><span class="line"></span><br><span class="line">NAME             TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)          AGE</span><br><span class="line">kubernetes       ClusterIP   10.96.0.1       &lt;none&gt;        443/TCP          47h</span><br><span class="line">kubernetes-pod   NodePort    10.101.42.159   &lt;none&gt;        9000:31847/TCP   2s</span><br></pre></td></tr></table></figure>
+<p>我們可以再使用 <code>kubectl describe services</code> 指令來查看 Service 的詳細資訊，這裡就可以很清楚的看到 NodePort、Port 和 TargetPort 分別是多少。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl describe services kubernetes-pod</span><br><span class="line"></span><br><span class="line">Name:                     kubernetes-pod</span><br><span class="line">Namespace:                default</span><br><span class="line">Labels:                   name=k8s-pod</span><br><span class="line">Annotations:              &lt;none&gt;</span><br><span class="line">Selector:                 name=k8s-pod</span><br><span class="line">Type:                     NodePort</span><br><span class="line">IP:                       10.101.42.159</span><br><span class="line">Port:                     &lt;<span class="built_in">unset</span>&gt;  9000/TCP</span><br><span class="line">TargetPort:               9000/TCP</span><br><span class="line">NodePort:                 &lt;<span class="built_in">unset</span>&gt;  31847/TCP</span><br><span class="line">Endpoints:                172.18.0.6:9000</span><br><span class="line">Session Affinity:         None</span><br><span class="line">External Traffic Policy:  Cluster</span><br><span class="line">Events:                   &lt;none&gt;</span><br></pre></td></tr></table></figure>
+<p>現在我們就可以使用 <code>minikube service</code> 指令來查看要連線的 Service，並取得連線的 url。前面的 IP 是 Node 的 IP，而後面接的 Port 就是前面提到的 NodePort。將這段 url 貼到瀏覽器就可以成功打開 potainer。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ minikube service kubernetes-pod --url</span><br><span class="line"></span><br><span class="line">http://172.17.0.2:31847</span><br></pre></td></tr></table></figure>
+<h3 id="建立-Service-的-yaml-檔"><a class="header-anchor" href="#建立-Service-的-yaml-檔"></a>建立 Service 的 yaml 檔</h3>
+<p>前面介紹了使用 <code>kubectl expose</code> 可以建立一個 Port 對應連接的 Service，而其實 Service 也可以使用 yaml 檔定義好再建立。</p>
+<p>以下是一個基本的 Service yaml 檔格式。</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Service</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">&lt;myapp&gt;</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">app:</span> <span class="string">&lt;myapp&gt;</span></span><br><span class="line">  <span class="attr">ports:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">port:</span> <span class="string">&lt;Port&gt;</span></span><br><span class="line">    <span class="attr">targetPort:</span> <span class="string">&lt;Target</span> <span class="string">Port&gt;</span></span><br></pre></td></tr></table></figure>
+<p>經過上述的介紹相信大家都看得懂這個 yaml 檔了，不過這裡要介紹一下前面沒有提到的 selector。</p>
+<p>selector 是這個 Service 過濾的條件，而這裡會指定 label 和他必須符合的值。像是基本格式中指定了 <code>app</code> 這個 label，而在這個 Node 當中的任何一個 Pod 只要有 app 這個 label 並且值符合就會被挑選出來，而 label 可以定義多個。</p>
+<p><strong>範例</strong><br>
+下面這個範例 target-port 因為是 Container 開放出來的 Port 所以還是指定 9000，而 port 這裡就可以進行更改了，我們改成 9001。最後 NodePort 在 <a href="https://tienyulin.github.io/kubernetes-pod/">上一篇</a> 有說只能分配在 30000-32767，所以我們就給 30001。</p>
+<p>另外可以再看到 selector，這裡指定的是 name 這個標籤並且值要是 k8s-pod，這個設定是要符合 <a href="https://tienyulin.github.io/kubernetes-pod/">上一篇</a> 建立 Pod 時 yaml 檔的設定，這樣建的 Pod 才會被選出來。</p>
+<p><code>kubernetes-service.yml</code></p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Service</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">kubernetes-service</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">name:</span> <span class="string">k8s-pod</span></span><br><span class="line">  <span class="attr">type:</span> <span class="string">NodePort</span></span><br><span class="line">  <span class="attr">ports:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">port:</span> <span class="number">9001</span></span><br><span class="line">    <span class="attr">targetPort:</span> <span class="number">9000</span></span><br><span class="line">    <span class="attr">nodePort:</span> <span class="number">30001</span></span><br></pre></td></tr></table></figure>
+<p>yaml 檔完成後就可以將 Service 建立起來了。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl create -f kubernetes-service.yml</span><br><span class="line"></span><br><span class="line">service/kubernetes-service created</span><br></pre></td></tr></table></figure>
+<p>建好後再次查看 Service 可以看到已經成功被建立起來，並且 Port 的對應也跟 yaml 檔的設定一樣。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl get services kubernetes-service</span><br><span class="line"></span><br><span class="line">NAME                 TYPE       CLUSTER-IP       EXTERNAL-IP   PORT(S)          AGE</span><br><span class="line">kubernetes-service   NodePort   10.106.112.205   &lt;none&gt;        9001:30001/TCP   18m</span><br></pre></td></tr></table></figure>
+<p>最後取得連線到 Service 的 url，就可以在瀏覽器上成功打開 potainer。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ minikube service kubernetes-service --url</span><br><span class="line"></span><br><span class="line">http://172.17.0.2:30001</span><br></pre></td></tr></table></figure>
+<h2 id="Deployment"><a class="header-anchor" href="#Deployment"></a>Deployment</h2>
+<p>Deployment 用於橫向擴展 Pod，會將相同的 Pod 複製成指定的數量，目的是為了在 Pod 故障或無法即時回應時透過其他複製的 Pod 頂替上來，以確保應用可以不中斷的繼續提供服務。當然，也可以用於負載平衡。所以最好的做法是相同的 Pod 要部署在不同的 Node 上，也就是不同主機上。</p>
+<p>這樣的方式可以簡化建立 Pod 的步驟和監控管理的部分，透過 Deployment 可以自動做完這些事情。</p>
+<h3 id="Replica-Set"><a class="header-anchor" href="#Replica-Set"></a>Replica Set</h3>
+<p>Deployment 其實是搭配了 Replica Set 這項功能來使用的，Replica Set 是用來確保 Pod 的數量會一直和使用者指定的一樣。Replica Set 會在 Pod 故障時重新啟動新的 Pod，並把舊的 Pod 刪除。</p>
+<p>而 Deployment 是更高層次的概念，他會管理建立出來的 Replica Set，如下圖 :</p>
+<p><img src="https://theithollow.com/wp-content/uploads/2019/01/image-9-1024x375.png" alt="Deployment"></p>
+<p>Kubernetes 官方更推薦使用 Deployment 來建立 Replica Set 而非自己建立 Replica Set。因為 Deployment 提供了更好的自動維護的功能，因此這裡就不介紹單獨建立 Replica Set 的方法了。</p>
+<h3 id="使用-Deployment-的好處"><a class="header-anchor" href="#使用-Deployment-的好處"></a>使用 Deployment 的好處</h3>
+<ul>
+<li>
+<p>自動部署應用<br>
+一個應用一定會不斷的更新，Deployment 可以使用 Rolling Update(滾動式更新) 來不斷的更新 Pod 和部署應用。</p>
+</li>
+<li>
+<p>Pod 更新過程不停機 (zero downtime)<br>
+當 Pod 需要更新時，會先產生一個新的 Replica Set，並在新的 Replica Set 產生一個新的 Pod，接著會在舊的 Replica Set 刪除一個舊的 Pod ，重複這個動作直到所有需要更新的 Pod 都完成。因此更新的過程完全不會發生停機的問題，Pod 的數量也都維持不會少於指定的數量。</p>
+</li>
+</ul>
+<p><img src="https://i.imgur.com/1nvioMZ.gif" alt="Deployment update"></p>
+<ul>
+<li>可以 Rollback 回先前的版本<br>
+每次進行滾動更新時，會把 Replica Set 紀錄起來，類似於 git 的紀錄。當更新後系統發生問題，就可以回到之前穩定的版本。</li>
+</ul>
+<h3 id="建立-Deployment-的-yaml-檔"><a class="header-anchor" href="#建立-Deployment-的-yaml-檔"></a>建立 Deployment 的 yaml 檔</h3>
+<p>要建立 Deployment 同樣要撰寫一個 yaml 檔來定義再啟動，下面是一個基本的 Deployment yaml 檔的格式。</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">apps/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Deployment</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">&lt;myapp&gt;</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">replicas:</span> <span class="string">&lt;number&gt;</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">matchLabels:</span></span><br><span class="line">      <span class="attr">app:</span> <span class="string">&lt;myapp&gt;</span></span><br><span class="line">  <span class="attr">template:</span></span><br><span class="line">    <span class="attr">metadata:</span></span><br><span class="line">      <span class="attr">labels:</span></span><br><span class="line">        <span class="attr">app:</span> <span class="string">&lt;myapp&gt;</span></span><br><span class="line">    <span class="attr">spec:</span></span><br><span class="line">      <span class="attr">containers:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">&lt;myapp&gt;</span></span><br><span class="line">        <span class="attr">image:</span> <span class="string">&lt;Image&gt;</span></span><br><span class="line">        <span class="attr">resources:</span></span><br><span class="line">          <span class="attr">limits:</span></span><br><span class="line">            <span class="attr">memory:</span> <span class="string">"128Mi"</span></span><br><span class="line">            <span class="attr">cpu:</span> <span class="string">"500m"</span></span><br><span class="line">        <span class="attr">ports:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">containerPort:</span> <span class="string">&lt;Port&gt;</span></span><br></pre></td></tr></table></figure>
+<p>spec :</p>
+<ul>
+<li>
+<p>replicas<br>
+定義要建立幾個 Pod。</p>
+</li>
+<li>
+<p>selector<br>
+這裡的 Selector 定義是要讓 Deployment 知道他要管理哪些 Pod，也是用給標籤的概念。</p>
+</li>
+<li>
+<p>template<br>
+定義這個 Deployment 在建立 Pod 時的統一設定，Deployment 建立時就會依照這個樣板做出多個一模一樣的 Pod。</p>
+</li>
+</ul>
+<p><strong>範例</strong><br>
+這個範例一樣使用 Portainer 作為 Container 的應用，並指定建立 3 個 Pod。</p>
+<p><code>kubernetes-deployment.yml</code></p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">apps/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Deployment</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">kubernetes-deployment</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">replicas:</span> <span class="number">3</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">matchLabels:</span></span><br><span class="line">      <span class="attr">app:</span> <span class="string">k8s-portainer</span></span><br><span class="line">  <span class="attr">template:</span></span><br><span class="line">    <span class="attr">metadata:</span></span><br><span class="line">      <span class="attr">labels:</span></span><br><span class="line">        <span class="attr">app:</span> <span class="string">k8s-portainer</span></span><br><span class="line">    <span class="attr">spec:</span></span><br><span class="line">      <span class="attr">containers:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">portainer</span></span><br><span class="line">        <span class="attr">image:</span> <span class="string">portainer/portainer:latest</span></span><br><span class="line">        <span class="attr">resources:</span></span><br><span class="line">          <span class="attr">limits:</span></span><br><span class="line">            <span class="attr">memory:</span> <span class="string">"128Mi"</span></span><br><span class="line">            <span class="attr">cpu:</span> <span class="string">"500m"</span></span><br><span class="line">        <span class="attr">ports:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">containerPort:</span> <span class="number">9000</span></span><br></pre></td></tr></table></figure>
+<p>完成 yaml 檔後就可以將 Deployment 建立起來。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl create -f kubernetes-deployment.yml</span><br><span class="line"></span><br><span class="line">deployment.apps/kubernetes-deployment created</span><br></pre></td></tr></table></figure>
+<p>使用 kubectl 的 <code>get deploy</code> 指令來查看剛建好的 Deployment。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl get deploy </span><br><span class="line"></span><br><span class="line">NAME                    READY   UP-TO-DATE   AVAILABLE   AGE</span><br><span class="line">kubernetes-deployment   3/3     3            3           16s</span><br></pre></td></tr></table></figure>
+<p>接著再來查看 Pod 是否有成功被建立起來，可以看到建立起了三個 Pod。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl get pods</span><br><span class="line"></span><br><span class="line">NAME                                     READY   STATUS    RESTARTS   AGE</span><br><span class="line">kubernetes-deployment-6758964498-dksjl   1/1     Running   0          112s</span><br><span class="line">kubernetes-deployment-6758964498-m5clb   1/1     Running   0          112s</span><br><span class="line">kubernetes-deployment-6758964498-t4rqm   1/1     Running   0          112s</span><br></pre></td></tr></table></figure>
+<h3 id="更新-Deployment"><a class="header-anchor" href="#更新-Deployment"></a>更新 Deployment</h3>
+<p>要不停機的更新 Deployment 可以使用 <code>kubectl edit deploy</code> 指令，就可以打開 deployment 的 yaml 檔進行編輯並再儲存後自動進行更新。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl edit deploy &lt;deployment name&gt;</span><br></pre></td></tr></table></figure>
+<p><strong>範例</strong><br>
+這裡使用前面建好的 Deployment 來操作。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl edit deploy kubernetes-deployment</span><br></pre></td></tr></table></figure>
+<p>執行了上面的指令後會換到編輯畫面，如下。這裡就可以進行 Deployment 的修改。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Please edit the object below. Lines beginning with a '#' will be ignored,</span></span><br><span class="line"><span class="comment"># and an empty file will abort the edit. If an error occurs while saving this file will be</span></span><br><span class="line"><span class="comment"># reopened with the relevant failures.</span></span><br><span class="line"><span class="comment">#</span></span><br><span class="line">apiVersion: apps/v1</span><br><span class="line">kind: Deployment</span><br><span class="line">metadata:</span><br><span class="line">  annotations:</span><br><span class="line">    deployment.kubernetes.io/revision: <span class="string">"1"</span></span><br><span class="line">  creationTimestamp: <span class="string">"2020-09-05T11:58:51Z"</span></span><br><span class="line">.</span><br><span class="line">.</span><br><span class="line">.</span><br><span class="line">spec:</span><br><span class="line">  progressDeadlineSeconds: 600</span><br><span class="line">  replicas: 3</span><br><span class="line">  revisionHistoryLimit: 10</span><br><span class="line">  selector:</span><br><span class="line">    matchLabels:</span><br><span class="line">      app: k8s-portainer</span><br><span class="line">  strategy:</span><br><span class="line">    rollingUpdate:</span><br><span class="line">      maxSurge: 25%</span><br><span class="line">      maxUnavailable: 25%</span><br><span class="line">    <span class="built_in">type</span>: RollingUpdate</span><br><span class="line">  template:</span><br><span class="line">    metadata:</span><br><span class="line">      creationTimestamp: null</span><br><span class="line">      labels:</span><br><span class="line">        app: k8s-portainer</span><br><span class="line">    spec:</span><br><span class="line">      containers:</span><br><span class="line">      - image: portainer/portainer:latest</span><br><span class="line">        imagePullPolicy: Always</span><br><span class="line">        name: portainer</span><br><span class="line">        ports:</span><br><span class="line">        - containerPort: 9000</span><br><span class="line">          protocol: TCP</span><br><span class="line">        resources:</span><br><span class="line">          limits:</span><br><span class="line">            cpu: 500m</span><br><span class="line">            memory: 128Mi</span><br><span class="line">        terminationMessagePath: /dev/termination-log</span><br><span class="line">        terminationMessagePolicy: File</span><br><span class="line">      dnsPolicy: ClusterFirst</span><br><span class="line">      restartPolicy: Always</span><br><span class="line">      schedulerName: default-scheduler</span><br><span class="line">      securityContext: &#123;&#125;</span><br><span class="line">      terminationGracePeriodSeconds: 30</span><br><span class="line">status:</span><br><span class="line">  availableReplicas: 3</span><br><span class="line">  conditions:</span><br><span class="line">  - lastTransitionTime: <span class="string">"2020-09-05T11:59:06Z"</span></span><br><span class="line">    lastUpdateTime: <span class="string">"2020-09-05T11:59:06Z"</span></span><br><span class="line">    message: Deployment has minimum availability.</span><br><span class="line">    reason: MinimumReplicasAvailable</span><br><span class="line">    status: <span class="string">"True"</span></span><br><span class="line">    <span class="built_in">type</span>: Available</span><br><span class="line">  - lastTransitionTime: <span class="string">"2020-09-05T11:58:51Z"</span></span><br><span class="line">    lastUpdateTime: <span class="string">"2020-09-05T11:59:06Z"</span></span><br><span class="line">    message: ReplicaSet <span class="string">"kubernetes-deployment-6758964498"</span> has successfully progressed.</span><br><span class="line">    reason: NewReplicaSetAvailable</span><br><span class="line">    status: <span class="string">"True"</span></span><br><span class="line">    <span class="built_in">type</span>: Progressing</span><br><span class="line">  observedGeneration: 1</span><br><span class="line">  readyReplicas: 3</span><br><span class="line">  replicas: 3</span><br><span class="line">  updatedReplicas: 3</span><br></pre></td></tr></table></figure>
+<p>這裡我們只修改 Container 的 name 來做測試，把 portainer 改成 portainer2。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">spec:</span><br><span class="line">.</span><br><span class="line">.</span><br><span class="line">.</span><br><span class="line">    spec:</span><br><span class="line">      containers:</span><br><span class="line">      - image: portainer/portainer:latest</span><br><span class="line">        imagePullPolicy: Always</span><br><span class="line">        name: portainer2</span><br><span class="line">.</span><br><span class="line">.</span><br><span class="line">.</span><br></pre></td></tr></table></figure>
+<p>接著可以使用 <code>kubectl get pods</code> 來查看 pod 的更新狀況。</p>
+<p>首先可以看到 <code>kubernetes-deployment-78b5df786-jfp2q</code> 這個 Pod 正在被建立起來，而原先的 Pod 也都還在，這符合我們上面所說的會先產生新的 Pod，而在新的 Pod 還沒建好前舊的是不會被刪除以達到不停機更新。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">NAME                                     READY   STATUS              RESTARTS   AGE</span><br><span class="line">kubernetes-deployment-6758964498-dksjl   1/1     Running             2          14m</span><br><span class="line">kubernetes-deployment-6758964498-m5clb   1/1     Running             2          14m</span><br><span class="line">kubernetes-deployment-78b5df786-jfp2q    0/1     ContainerCreating   0          6s</span><br><span class="line">kubernetes-deployment-6758964498-t4rqm   1/1     Running             0          12s</span><br></pre></td></tr></table></figure>
+<p>接著因為 <code>kubernetes-deployment-78b5df786-jfp2q</code> 已經建立好了，所以其中一個 Pod <code>kubernetes-deployment-6758964498-m5clb</code> 也就被停止了，後續會自動被刪除。與此同時下一個新的 Pod 又被建立了起來，就這樣持續相同動作直到建立完指定數量的 Pod。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">NAME                                     READY   STATUS              RESTARTS   AGE</span><br><span class="line">kubernetes-deployment-6758964498-dksjl   1/1     Running             2          14m</span><br><span class="line">kubernetes-deployment-6758964498-m5clb   0/1     Terminating         2          14m</span><br><span class="line">kubernetes-deployment-78b5df786-hsrw2    0/1     ContainerCreating   0          2s</span><br><span class="line">kubernetes-deployment-78b5df786-jfp2q    1/1     Running             0          9s</span><br><span class="line">kubernetes-deployment-6758964498-t4rqm   1/1     Running             0          15s</span><br></pre></td></tr></table></figure>
+<p>最後可以看到 Pod 都被更新成新的了。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">NAME                                    READY   STATUS    RESTARTS   AGE</span><br><span class="line">kubernetes-deployment-78b5df786-hsrw2   1/1     Running   0          19s</span><br><span class="line">kubernetes-deployment-78b5df786-jfp2q   1/1     Running   0          26s</span><br><span class="line">kubernetes-deployment-78b5df786-r6nzx   1/1     Running   0          32s</span><br></pre></td></tr></table></figure>
+<h3 id="更新狀況"><a class="header-anchor" href="#更新狀況"></a>更新狀況</h3>
+<p>可以使用 <code>kubectl rollout status</code> 來查看更新的狀況。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl rollout status deploy &lt;deployment name&gt;</span><br></pre></td></tr></table></figure>
+<p><strong>範例</strong><br>
+這裡一樣使用前面更新的 Deployment 來查看更新狀況，可以看到更新成功。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl rollout status deploy kubernetes-deployment</span><br><span class="line">deployment <span class="string">"kubernetes-deployment"</span> successfully rolled out</span><br></pre></td></tr></table></figure>
+<h3 id="更新歷史紀錄"><a class="header-anchor" href="#更新歷史紀錄"></a>更新歷史紀錄</h3>
+<p>可以使用 <code>kubectl rollout history</code> 來查看更新的歷史紀錄。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubectl rollout <span class="built_in">history</span> deploy &lt;deployment name&gt;</span><br></pre></td></tr></table></figure>
+<p><strong>範例</strong><br>
+下面的範例可以看到有兩筆紀錄， Revision 是更新的版號。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl rollout <span class="built_in">history</span> deploy kubernetes-deployment</span><br><span class="line">deployment.apps/kubernetes-deployment </span><br><span class="line">REVISION  CHANGE-CAUSE</span><br><span class="line">1         &lt;none&gt;</span><br><span class="line">2         &lt;none&gt;</span><br></pre></td></tr></table></figure>
+<h3 id="退回更新前的版本"><a class="header-anchor" href="#退回更新前的版本"></a>退回更新前的版本</h3>
+<p>可以使用 <code>kubectl rollout undo</code> 來退回更新前的版本，還可以指定要退回哪一版，不指定就是上一版。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl rollout undo deploy &lt;deployment name&gt; --to-revision=&lt;revision number&gt;</span><br></pre></td></tr></table></figure>
+<p><strong>範例</strong><br>
+下面這個範例不指定版號，所以就是退回前一版。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl rollout undo deploy kubernetes-deployment</span><br><span class="line">deployment.apps/kubernetes-deployment rolled back</span><br></pre></td></tr></table></figure>
+<p>退版之後再次取得 pod 來看可以發現 NAME 從 <code>kubernetes-deployment-78b5df786</code> 變成了 <code>kubernetes-deployment-6758964498</code>，而 <code>kubernetes-deployment-6758964498</code> 正是上一版 Pod 的 NAME。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl get pods</span><br><span class="line">NAME                                     READY   STATUS        RESTARTS   AGE</span><br><span class="line">kubernetes-deployment-6758964498-2t9q6   1/1     Running       0          19s</span><br><span class="line">kubernetes-deployment-6758964498-kzdqg   1/1     Running       0          14s</span><br><span class="line">kubernetes-deployment-6758964498-n8s72   1/1     Running       0          25s</span><br></pre></td></tr></table></figure>
+<h2 id="Ingress"><a class="header-anchor" href="#Ingress"></a>Ingress</h2>
+<p>Ingress 用於將所有進入 Service 的 Port 統一，回想一下前面我們介紹 Service 時會制定開放的 Port，但是一旦 Service 的數量越來越多時就很難去維護了。如下圖 :</p>
+<p><img src="https://i.imgur.com/ZIRXRTL.png" alt="without ingress"></p>
+<p>所以 Ingress 的作法是依據 Request 指定的路徑或是 Domain 來將 Request 導向到對應的 Service。</p>
+<p>而統一的 Port 可以是 HTTP 的 80 或 HTTPS 的 443，只要對外開放的 Port 統一，在維護上就可以更加輕鬆也可以因此達到 <a href="https://tienyulin.github.io/proxy/">Reverse Proxy</a> 的作用。如下圖 :</p>
+<p><img src="https://i.imgur.com/QkKTAGf.png" alt="with ingress"></p>
+<h3 id="建立-Ingress-的-yaml-檔"><a class="header-anchor" href="#建立-Ingress-的-yaml-檔"></a>建立 Ingress 的 yaml 檔</h3>
+<p>Ingress 同樣是要透過撰寫 yaml 檔來建立，下面是 Ingress 的 yaml 檔基本格式。</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">networking.k8s.io/v1beta1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Ingress</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">&lt;ingress</span> <span class="string">name&gt;</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">rules:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">host:</span> <span class="string">&lt;domain</span> <span class="string">name&gt;</span></span><br><span class="line">  <span class="attr">http:</span></span><br><span class="line">      <span class="attr">paths:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">path:</span> <span class="string">/&lt;path&gt;</span></span><br><span class="line">        <span class="attr">backend:</span></span><br><span class="line">          <span class="attr">serviceName:</span> <span class="string">&lt;service</span> <span class="string">name&gt;</span></span><br><span class="line">          <span class="attr">servicePort:</span> <span class="number">80</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">https:</span></span><br><span class="line">      <span class="attr">paths:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">path:</span> <span class="string">/&lt;path&gt;</span></span><br><span class="line">        <span class="attr">backend:</span></span><br><span class="line">          <span class="attr">serviceName:</span> <span class="string">&lt;service</span> <span class="string">name&gt;</span></span><br><span class="line">          <span class="attr">servicePort:</span> <span class="number">443</span></span><br></pre></td></tr></table></figure>
+<p>paths :</p>
+<ul>
+<li>
+<p>host<br>
+host 可以指定自訂的 Domain Name，也可以不設定就像上方 yaml 檔基本格式中 rules 的第二個沒有指定。沒有指定的情況就是使用主機的 IP。</p>
+</li>
+<li>
+<p>path<br>
+path 可以定義特定的路徑會導向到指定的 Service，也可以不指定。</p>
+</li>
+<li>
+<p>pathType<br>
+在 <a href="http://networking.k8s.io/v1beta1" target="_blank" rel="noopener">networking.k8s.io/v1beta1</a> 這版是沒有支援 pathType，但是官方文件使用 <a href="http://networking.k8s.io/v1" target="_blank" rel="noopener">networking.k8s.io/v1</a> 這版有介紹，就順便紀錄下來。</p>
+<p>pathType 可以指定符合的路徑格式，例如，指定 <code>Prefix</code> 就代表是前面的 IP 會是主機的 IP，或是 Domain 會是指定的 Host，若沒有指定 pathType 則 <code>Prefix</code> 為預設值。也可以指定 <code>Exact</code>，就代表整個 URL 都要完全符合。pathType 更多用法可以參考 <a href="https://kubernetes.io/docs/concepts/services-networking/ingress/#path-types" target="_blank" rel="noopener">Kubernetes 官網</a>。</p>
+</li>
+<li>
+<p>backend<br>
+backend 可以指定後續要進行處理的 Service。</p>
+</li>
+</ul>
+<p><strong>範例</strong><br>
+在建立 Ingress 之前，我們要先建立一組 Deployment 和 Service，最後再建立 Ingress。</p>
+<p>首先先建立 Deployment 讓 Pod 建立起來，這裡因為 portainer 在後續要指定路徑啟動時會遇到畫面呈現有問題也不太確定原因，所以改用 <a href="https://medium.com/@C.W.Hu/kubernetes-implement-ingress-deployment-tutorial-7431c5f96c3e" target="_blank" rel="noopener">另一篇教學</a> 所提供的藍色和紫色小鯨魚的 Image。</p>
+<p><code>kubernetes-deployment.yml</code></p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">apps/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Deployment</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">blue-deployment</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">replicas:</span> <span class="number">2</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">matchLabels:</span></span><br><span class="line">      <span class="attr">app:</span> <span class="string">blue</span></span><br><span class="line">  <span class="attr">template:</span></span><br><span class="line">    <span class="attr">metadata:</span></span><br><span class="line">      <span class="attr">labels:</span></span><br><span class="line">        <span class="attr">app:</span> <span class="string">blue</span></span><br><span class="line">    <span class="attr">spec:</span></span><br><span class="line">      <span class="attr">containers:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">blue</span></span><br><span class="line">        <span class="attr">image:</span> <span class="string">hcwxd/blue-whale</span></span><br><span class="line">        <span class="attr">resources:</span></span><br><span class="line">          <span class="attr">limits:</span></span><br><span class="line">            <span class="attr">memory:</span> <span class="string">"128Mi"</span></span><br><span class="line">            <span class="attr">cpu:</span> <span class="string">"500m"</span></span><br><span class="line">        <span class="attr">ports:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">containerPort:</span> <span class="number">3000</span></span><br><span class="line"><span class="meta">---</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">apps/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Deployment</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">purple-deployment</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">replicas:</span> <span class="number">2</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">matchLabels:</span></span><br><span class="line">      <span class="attr">app:</span> <span class="string">purple</span></span><br><span class="line">  <span class="attr">template:</span></span><br><span class="line">    <span class="attr">metadata:</span></span><br><span class="line">      <span class="attr">labels:</span></span><br><span class="line">        <span class="attr">app:</span> <span class="string">purple</span></span><br><span class="line">    <span class="attr">spec:</span></span><br><span class="line">      <span class="attr">containers:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">purple</span></span><br><span class="line">        <span class="attr">image:</span> <span class="string">hcwxd/purple-whale</span></span><br><span class="line">        <span class="attr">resources:</span></span><br><span class="line">          <span class="attr">limits:</span></span><br><span class="line">            <span class="attr">memory:</span> <span class="string">"128Mi"</span></span><br><span class="line">            <span class="attr">cpu:</span> <span class="string">"500m"</span></span><br><span class="line">        <span class="attr">ports:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">containerPort:</span> <span class="number">3000</span></span><br></pre></td></tr></table></figure>
+<p>完成 Deployment 的 yaml 檔後就可以將 Deployment 建立起來。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl create -f kubernetes-deployment.yml</span><br></pre></td></tr></table></figure>
+<p>接下來我們要建立這些 Pod 所對應的 Service，可以看到 Service 的 Port 統一都設定為 80。所以 target port 都會對應到 Service 的 80 port。而這裡也可以發現沒有設定 NodePort，因為使用 Ingress 後外部就不會再直接透過 NodePort 連進來了。</p>
+<p><code>kubernetes-service.yml</code></p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Service</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">blue-service</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">app:</span> <span class="string">blue</span></span><br><span class="line">  <span class="attr">type:</span> <span class="string">NodePort</span></span><br><span class="line">  <span class="attr">ports:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">port:</span> <span class="number">80</span></span><br><span class="line">    <span class="attr">targetPort:</span> <span class="number">3000</span></span><br><span class="line"><span class="meta">---</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Service</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">purple-service</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">app:</span> <span class="string">purple</span></span><br><span class="line">  <span class="attr">type:</span> <span class="string">NodePort</span></span><br><span class="line">  <span class="attr">ports:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">port:</span> <span class="number">80</span></span><br><span class="line">    <span class="attr">targetPort:</span> <span class="number">3000</span></span><br></pre></td></tr></table></figure>
+<p>完成 Service 的 yaml 檔後就可以將 Service 建立起來。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl create -f kubernetes-service.yml</span><br></pre></td></tr></table></figure>
+<p>最後我們就要來建立 Ingress，分別對兩個應用指定不同的 Host。</p>
+<p><code>kubernetes-ingress.yml</code></p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">networking.k8s.io/v1beta1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Ingress</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">host-based-ingress</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">rules:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">host:</span> <span class="string">blue.demo.com</span> </span><br><span class="line">    <span class="attr">http:</span></span><br><span class="line">      <span class="attr">paths:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">backend:</span></span><br><span class="line">          <span class="attr">serviceName:</span> <span class="string">blue-service</span></span><br><span class="line">          <span class="attr">servicePort:</span> <span class="number">80</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">host:</span> <span class="string">purple.demo.com</span></span><br><span class="line">    <span class="attr">http:</span></span><br><span class="line">      <span class="attr">paths:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">backend:</span></span><br><span class="line">          <span class="attr">serviceName:</span> <span class="string">purple-service</span></span><br><span class="line">          <span class="attr">servicePort:</span> <span class="number">80</span></span><br><span class="line"><span class="meta">---</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">networking.k8s.io/v1beta1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Ingress</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">path-based-ingress</span></span><br><span class="line">  <span class="attr">annotations:</span></span><br><span class="line">    <span class="attr">nginx.ingress.kubernetes.io/rewrite-target:</span> <span class="string">/</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">rules:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">http:</span></span><br><span class="line">      <span class="attr">paths:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">path:</span> <span class="string">/blue</span></span><br><span class="line">        <span class="attr">backend:</span></span><br><span class="line">          <span class="attr">serviceName:</span> <span class="string">blue-service</span></span><br><span class="line">          <span class="attr">servicePort:</span> <span class="number">80</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">path:</span> <span class="string">/purple</span></span><br><span class="line">        <span class="attr">backend:</span></span><br><span class="line">          <span class="attr">serviceName:</span> <span class="string">purple-service</span></span><br><span class="line">          <span class="attr">servicePort:</span> <span class="number">80</span></span><br></pre></td></tr></table></figure>
+<p>完成 Ingress 的 yaml 檔後，要先使用 <code>minikube addons enable ingress</code> 的指令啟用 Ingress，接著就可以將 Ingress 建立起來。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl create -f kubernetes-ingress.yml</span><br><span class="line">ingress.networking.k8s.io/kubernetes-ingress created</span><br></pre></td></tr></table></figure>
+<p>建立好 Ingress 後可以使用 <code>kubectl get ingress</code> 來查看剛建立的 ingress。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ kubectl get ingress</span><br><span class="line">NAME                 CLASS    HOSTS                           ADDRESS   PORTS   AGE</span><br><span class="line">host-based-ingress   &lt;none&gt;   blue.demo.com,purple.demo.com             80      5s</span><br><span class="line">path-based-ingress   &lt;none&gt;   *                                         80      5s</span><br></pre></td></tr></table></figure>
+<p>建立完成後別急著輸入 Host Name 就想連到 <a href="http://blue.demo.com" target="_blank" rel="noopener">blue.demo.com</a> 或 <a href="http://purple.demo.com" target="_blank" rel="noopener">purple.demo.com</a>，因為 DNS 會先在本機上的 <code>/etc/hosts</code> 尋找網址跟 IP 的對應，找不到才會去其他的 DNS Server 找。所以既然這是我們自訂的網域名稱，可以直接將這些網域名稱指向 minikube ip 並寫進 <code>/etc/hosts</code>，這樣就可以連到 minikube 的 Kubernetes 了。如果忘記了 Kubernetes 的 IP，可以使用 <code>minikube ip</code> 指令來取得。建立 DNS 對應作法如下 :</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">echo</span> 172.17.0.2 blue.demo.com &gt;&gt; /etc/hosts</span><br><span class="line">$ <span class="built_in">echo</span> 172.17.0.2 purple.demo.com &gt;&gt; /etc/hosts</span><br></pre></td></tr></table></figure>
+<p>以上都完成後就先來看看指定 Host 的結果 :</p>
+<ul>
+<li>
+<p><a href="http://blue.demo.com" target="_blank" rel="noopener">http://blue.demo.com</a><br>
+<img src="https://i.imgur.com/xZzcSBW.png" alt="blue host"></p>
+</li>
+<li>
+<p><a href="http://purple.demo.com" target="_blank" rel="noopener">http://purple.demo.com</a><br>
+<img src="https://i.imgur.com/ecmuJDm.png" alt="purple host"></p>
+</li>
+</ul>
+<p>接著再來看指定路徑的結果 :</p>
+<ul>
+<li>
+<p><a href="http://172.17.0.2/blue" target="_blank" rel="noopener">http://172.17.0.2/blue</a><br>
+<img src="https://i.imgur.com/KMhs4QJ.png" alt="blue path"></p>
+</li>
+<li>
+<p><a href="http://172.17.0.2/purple" target="_blank" rel="noopener">http://172.17.0.2/purple</a><br>
+<img src="https://i.imgur.com/XNhXj6s.png" alt="purple path"></p>
+</li>
+</ul>
+<h2 id="Summary"><a class="header-anchor" href="#Summary"></a>Summary</h2>
+<p>本篇介紹了一些 Pod 的進階應用，實務上若能使用 Service + Deployment + Ingress 來部署應用才會較好管理和維護，也能發揮 Kubernetes 最大的效益。</p>
+<h2 id="參考"><a class="header-anchor" href="#參考"></a>參考</h2>
+<p>[1] <a href="https://medium.com/@wrre/kubernetes%E5%AD%B8%E7%BF%92%E7%AD%86%E8%A8%982-%E5%BB%BA%E7%AB%8B%E8%87%AA%E5%B7%B1%E7%9A%84pod-a240f8a00a40" target="_blank" rel="noopener">Kubernetes學習筆記2 — pod及service</a><br>
+[2] <a href="https://tachingchen.com/tw/blog/kubernetes-service/" target="_blank" rel="noopener">Kubernetes Service 概念詳解</a><br>
+[3] <a href="https://ithelp.ithome.com.tw/articles/10194344" target="_blank" rel="noopener">建立外部服務與Pods的溝通管道 - Services</a><br>
+[4] <a href="https://zhuanlan.zhihu.com/p/137370051" target="_blank" rel="noopener">Kubernetes Service | 知乎</a><br>
+[5] <a href="https://ithelp.ithome.com.tw/articles/10204939?sc=iThelpR" target="_blank" rel="noopener">Day 16 - Kubernetes Label 與 Selector</a><br>
+[6] <a href="https://matthewpalmer.net/kubernetes-app-developer/articles/kubernetes-ports-targetport-nodeport-service.html" target="_blank" rel="noopener">Port, TargetPort, and NodePort in Kubernetes</a><br>
+[7] <a href="https://ithelp.ithome.com.tw/articles/10196261" target="_blank" rel="noopener">在 Kubernetes 中實現負載平衡 - Ingress Controller</a><br>
+[8] <a href="https://kubernetes.io/docs/concepts/services-networking/ingress/" target="_blank" rel="noopener">Ingress | Kubernetes</a><br>
+[9] <a href="https://cloud.google.com/kubernetes-engine/docs/concepts/deployment" target="_blank" rel="noopener">Deployment | Google Clooud</a><br>
+[10] <a href="https://kubernetes.io/docs/concepts/workloads/controllers/deployment/" target="_blank" rel="noopener">Deployments | Kubernetes</a><br>
+[11] <a href="https://segmentfault.com/a/1190000017134399" target="_blank" rel="noopener">K8s ApiVersion</a><br>
+[12] <a href="https://medium.com/andy-blog/kubernetes-%E9%82%A3%E4%BA%9B%E4%BA%8B-ingress-%E7%AF%87-%E4%B8%80-92944d4bf97d" target="_blank" rel="noopener">Kubernetes 那些事 — Ingress 篇（一）</a><br>
+[13] <a href="https://medium.com/andy-blog/kubernetes-%E9%82%A3%E4%BA%9B%E4%BA%8B-deployment-%E8%88%87-replicaset-%E4%BA%8C-f60146c878e4" target="_blank" rel="noopener">Kubernetes 那些事 — Deployment 與 ReplicaSet（二）</a><br>
+[14] <a href="https://ithelp.ithome.com.tw/users/20103753/ironman/1590" target="_blank" rel="noopener">Kubernetes 30天學習筆記</a><br>
+[15] <a href="https://www.kubernetes.org.cn/replicasets" target="_blank" rel="noopener">名詞解釋：ReplicaSets</a><br>
+[16] <a href="https://medium.com/@C.W.Hu/kubernetes-implement-ingress-deployment-tutorial-7431c5f96c3e" target="_blank" rel="noopener">Kubernetes 基礎教學（二）實作範例：Pod、Service、Deployment、Ingress</a></p>
+
+    </div>
+
+    
+    
+    
+      
+  <div class="popular-posts-header">系列文章</div>
+  <ul class="popular-posts">
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/kubernetes-1_concept/" rel="bookmark">Kubernetes (一) - 基本概念</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/kubernetes-2_install/" rel="bookmark">Kubernetes (二) - 安裝和啟動 Kubernetes</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/kubernetes-3_pod/" rel="bookmark">Kubernetes (三) - 實戰 Pod 建立</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/kubernetes-5_horizontal-pod-autoscaler-hpa/" rel="bookmark">Kubernetes (五) - 實現 Pod 的 AutoScaling</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/docker-1_concept/" rel="bookmark">Docker (一) - 容器與Docker的基本概念</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/docker-compose/" rel="bookmark">Docker Compose</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/open-container-initiative-oci/" rel="bookmark">OCI (Open Container Initiative)</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/docker-2_command/" rel="bookmark">Docker (二) - Docker的基本操作</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/docker-3_dockerfile/" rel="bookmark">Docker (三) - 撰寫 Dockerfile</a></div>
+    </li>
+  </ul>
+
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/tags/Container/" rel="tag"><i class="fa fa-tag"></i> Container</a>
+              <a href="/tags/Docker/" rel="tag"><i class="fa fa-tag"></i> Docker</a>
+              <a href="/tags/Kubernetes/" rel="tag"><i class="fa fa-tag"></i> Kubernetes</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/kubernetes-3_pod/" rel="prev" title="Kubernetes (三) - 實戰 Pod 建立">
+      <i class="fa fa-chevron-left"></i> Kubernetes (三) - 實戰 Pod 建立
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/kubernetes-5_horizontal-pod-autoscaler-hpa/" rel="next" title="Kubernetes (五) - 實現 Pod 的 AutoScaling">
+      Kubernetes (五) - 實現 Pod 的 AutoScaling <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<!-- tienyulin.github -->
+<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-8271558544185929"
+     data-ad-slot="8611071932"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Service"><span class="nav-number">1.</span> <span class="nav-text">Service</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Service-處理-Port-對應"><span class="nav-number">1.1.</span> <span class="nav-text">Service 處理 Port 對應</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#建立-Service-的-yaml-檔"><span class="nav-number">1.2.</span> <span class="nav-text">建立 Service 的 yaml 檔</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Deployment"><span class="nav-number">2.</span> <span class="nav-text">Deployment</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Replica-Set"><span class="nav-number">2.1.</span> <span class="nav-text">Replica Set</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#使用-Deployment-的好處"><span class="nav-number">2.2.</span> <span class="nav-text">使用 Deployment 的好處</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#建立-Deployment-的-yaml-檔"><span class="nav-number">2.3.</span> <span class="nav-text">建立 Deployment 的 yaml 檔</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#更新-Deployment"><span class="nav-number">2.4.</span> <span class="nav-text">更新 Deployment</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#更新狀況"><span class="nav-number">2.5.</span> <span class="nav-text">更新狀況</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#更新歷史紀錄"><span class="nav-number">2.6.</span> <span class="nav-text">更新歷史紀錄</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#退回更新前的版本"><span class="nav-number">2.7.</span> <span class="nav-text">退回更新前的版本</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Ingress"><span class="nav-number">3.</span> <span class="nav-text">Ingress</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#建立-Ingress-的-yaml-檔"><span class="nav-number">3.1.</span> <span class="nav-text">建立 Ingress 的 yaml 檔</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Summary"><span class="nav-number">4.</span> <span class="nav-text">Summary</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#參考"><span class="nav-number">5.</span> <span class="nav-text">參考</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Tien-Yu Lin"
+      src="/images/tienyu.jpg">
+  <p class="site-author-name" itemprop="name">Tien-Yu Lin</p>
+  <div class="site-description" itemprop="description">Try not to become a man of success, but rather try to become a man of value. - Albert Einstein</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">45</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">28</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">29</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/tienyulin" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;tienyulin" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://hub.docker.com/u/tienyu" title="DockerHub → https:&#x2F;&#x2F;hub.docker.com&#x2F;u&#x2F;tienyu" rel="noopener" target="_blank"><i class="fab fa-docker fa-fw"></i>DockerHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:t.tienyulin@gmail.com" title="E-Mail → mailto:t.tienyulin@gmail.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.linkedin.com/in/tony-lin-79733714b/" title="Linkedin → https:&#x2F;&#x2F;www.linkedin.com&#x2F;in&#x2F;tony-lin-79733714b&#x2F;" rel="noopener" target="_blank"><i class="fab fa-linkedin fa-fw"></i>Linkedin</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+      <!--google_adsense-->	      
+      	 
+        <div class="links-of-blogroll-title">	     
+          <i class="fa fa-google"></i> AdSense	       
+          <ins class="adsbygoogle"	      
+              style="display:block"	     
+              data-ad-client="ca-pub-8271558544185929"	
+              data-ad-slot="8611071932"	
+              data-ad-format="auto"	
+              data-full-width-responsive="true"></ins>	
+          <script>	
+            (adsbygoogle = window.adsbygoogle || []).push({});	
+          </script>	
+        </div>	
+      	
+      <!--/google_adsense-->
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Tien-Yu Lin</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a>
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="Total Visitors">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="Total Views">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+  <script>
+    (function(){
+      var canonicalURL, curProtocol;
+      //Get the <link> tag
+      var x=document.getElementsByTagName("link");
+		//Find the last canonical URL
+		if(x.length > 0){
+			for (i=0;i<x.length;i++){
+				if(x[i].rel.toLowerCase() == 'canonical' && x[i].href){
+					canonicalURL=x[i].href;
+				}
+			}
+		}
+    //Get protocol
+	    if (!canonicalURL){
+	    	curProtocol = window.location.protocol.split(':')[0];
+	    }
+	    else{
+	    	curProtocol = canonicalURL.split(':')[0];
+	    }
+      //Get current URL if the canonical URL does not exist
+	    if (!canonicalURL) canonicalURL = window.location.href;
+	    //Assign script content. Replace current URL with the canonical URL
+      !function(){var e=/([http|https]:\/\/[a-zA-Z0-9\_\.]+\.baidu\.com)/gi,r=canonicalURL,t=document.referrer;if(!e.test(r)){var n=(String(curProtocol).toLowerCase() === 'https')?"https://sp0.baidu.com/9_Q4simg2RQJ8t7jm9iCKT-xh_/s.gif":"//api.share.baidu.com/s.gif";t?(n+="?r="+encodeURIComponent(document.referrer),r&&(n+="&l="+r)):r&&(n+="?l="+r);var i=new Image;i.src=n}}(window);})();
+  </script>
+
+
+
+
+  
+<script src="//cdn.jsdelivr.net/npm/algoliasearch@4/dist/algoliasearch-lite.umd.js"></script>
+<script src="//cdn.jsdelivr.net/npm/instantsearch.js@4/dist/instantsearch.production.min.js"></script>
+<script src="/js/algolia-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://tienyulin.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  var disqus_config = function() {
+    this.page.url = "https://tienyulin.github.io/kubernetes-4_service-deployment-ingress/";
+    this.page.identifier = "kubernetes-4_service-deployment-ingress/";
+    this.page.title = "Kubernetes (四) - Pod 進階應用 Service、Deployment、Ingress";
+    };
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: disqus_config
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://tienyulin.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>

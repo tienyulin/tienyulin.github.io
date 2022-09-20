@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="/lib/pace/pace-theme-bounce.min.css">
+  <script src="/lib/pace/pace.min.js"></script>
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"tienyulin.github.io","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"appID":"CKNGBQCM6Q","apiKey":"aa8f782cff7f67f246a3fd15f8592fc1","indexName":"tienyulin.github.com","hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="Dockerfile 是一個 YAML 格式的純文字檔，由許多命令所組成。而這些命令就是在描述產生 Image 所需要的內容和要做的事情。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Docker (三) - 撰寫 Dockerfile">
+<meta property="og:url" content="https://tienyulin.github.io/docker-3_dockerfile/">
+<meta property="og:site_name" content="Tienyu Note">
+<meta property="og:description" content="Dockerfile 是一個 YAML 格式的純文字檔，由許多命令所組成。而這些命令就是在描述產生 Image 所需要的內容和要做的事情。">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2020-05-16T00:00:00.000Z">
+<meta property="article:modified_time" content="2020-05-16T00:00:00.000Z">
+<meta property="article:author" content="Tien-Yu Lin">
+<meta property="article:tag" content="Container">
+<meta property="article:tag" content="Docker">
+<meta property="article:tag" content="Dockerfile">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://tienyulin.github.io/docker-3_dockerfile/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>Docker (三) - 撰寫 Dockerfile | Tienyu Note</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-169323232-1"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'UA-169323232-1');
+      }
+    </script>
+
+
+
+
+
+
+
+<script data-ad-client="ca-pub-8271558544185929" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Tienyu Note</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">Fly with me</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives<span class="badge">45</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-folder-open fa-fw"></i>Categories<span class="badge">28</span></a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags<span class="badge">29</span></a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-sitemap">
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-sitemap fa-fw"></i>Sitemap</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container"></div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="algolia-results">
+  <div id="algolia-stats"></div>
+  <div id="algolia-hits"></div>
+  <div id="algolia-pagination" class="algolia-pagination"></div>
+</div>
+
+      
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/tienyulin" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="https://tienyulin.github.io/docker-3_dockerfile/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/tienyu.jpg">
+      <meta itemprop="name" content="Tien-Yu Lin">
+      <meta itemprop="description" content="Try not to become a man of success, but rather try to become a man of value. - Albert Einstein">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Tienyu Note">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Docker (三) - 撰寫 Dockerfile
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2020-05-16 00:00:00" itemprop="dateCreated datePublished" datetime="2020-05-16T00:00:00+00:00">2020-05-16</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Docker/" itemprop="url" rel="index"><span itemprop="name">Docker</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="Views" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">Views: </span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus: </span>
+    
+    <a title="disqus" href="/docker-3_dockerfile/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="docker-3_dockerfile/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>Dockerfile 是一個 <code>YAML</code> 格式的純文字檔，由許多命令所組成。而這些命令就是在描述產生 Image 所需要的內容和要做的事情。</p>
+<a id="more"></a>
+<p>Docker 會自動讀取目錄中的 <code>Dockerfile</code> 來建立 Image，所以不建議修改 Dockerfile 的名稱，若是真的要修改或是要建立多個 Dockerfile 放在一起，那就必須在建立 Image 的時候指定要使用哪個 Dockerfile。</p>
+<h2 id="Dockerfile-的組成"><a class="header-anchor" href="#Dockerfile-的組成"></a>Dockerfile 的組成</h2>
+<p>我們直接先看一個簡單的 Dockerfile 範例，以下為 DotNet Core 3.1 的 Dockerfile。</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">FROM</span> <span class="string">mcr.microsoft.com/dotnet/core/aspnet:3.0</span> <span class="string">AS</span> <span class="string">runtime</span></span><br><span class="line"><span class="string">WORKDIR</span> <span class="string">/app</span></span><br><span class="line"><span class="string">COPY</span> <span class="string">published/aspnetapp.dll</span> <span class="string">./</span></span><br><span class="line"><span class="string">ENTRYPOINT</span> <span class="string">["dotnet",</span> <span class="string">"aspnetapp.dll"</span><span class="string">]</span></span><br></pre></td></tr></table></figure>
+<p>先簡略說明一下上面的 Dockerfile 要做哪些事情 :</p>
+<ol>
+<li>以 <code>mcr.microsoft.com/dotnet/core/aspnet:3.0</code> 這個 Image 做為基底並命名為 runtime</li>
+</ol>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">FROM</span> <span class="string">mcr.microsoft.com/dotnet/core/aspnet:3.0</span> <span class="string">AS</span> <span class="string">runtime</span></span><br></pre></td></tr></table></figure>
+<ol start="2">
+<li>設定檔案目前位置到 <code>/app</code></li>
+</ol>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">WORKDIR</span> <span class="string">/app</span></span><br></pre></td></tr></table></figure>
+<ol start="3">
+<li>複製所需的檔案到 <code>/app</code> 目錄下</li>
+</ol>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">COPY</span> <span class="string">published/aspnetapp.dll</span> <span class="string">./</span></span><br></pre></td></tr></table></figure>
+<ol start="4">
+<li>定義 Container 啟動時要執行的指令</li>
+</ol>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">ENTRYPOINT</span> <span class="string">["dotnet",</span> <span class="string">"aspnetapp.dll"</span><span class="string">]</span></span><br></pre></td></tr></table></figure>
+<p>看完上述的範例後可以發現，Dockerfile 就是由一行行的指令所組成，而一個指令所做的事情對 Image 來說就是新增一層資料層，所以一個 Image 就是透過層層堆疊資料所組成的。</p>
+<p>接著介紹一些在Dockerfile中常用的指令:</p>
+<h3 id="開頭代表註解"><a class="header-anchor" href="#開頭代表註解"></a>#開頭代表註解</h3>
+<p>Dockerfile 中可以使用 <code>#</code> 來代表註解</p>
+<h3 id="FROM"><a class="header-anchor" href="#FROM"></a>FROM</h3>
+<p>代表要以哪個 Image 做為基底進行修改</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">FROM</span> <span class="string">&lt;ImageName&gt;:&lt;tag&gt;</span></span><br></pre></td></tr></table></figure>
+<p>一般我們會使用 DockerHub 上現有的環境 Image 來做基底直接修改，你不會希望每次都要自己重新設計環境的 Image，所以就使用現成的就好。</p>
+<p><code>From</code> 指令會先檢查本機上如果已經有下載需要的 Image 了那就直接使用，如果沒有那就會先下載再使用。</p>
+<h3 id="MAINTAINER"><a class="header-anchor" href="#MAINTAINER"></a>MAINTAINER</h3>
+<p>設定 Image 的維護者，通常就是作者</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">MAINTAINER</span> <span class="string">&lt;name&gt;</span></span><br></pre></td></tr></table></figure>
+<h3 id="LABEL"><a class="header-anchor" href="#LABEL"></a>LABEL</h3>
+<p>設定 Image 的 Metadata，例如:作者、Email、說明等等</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">LABEL</span> <span class="string">&lt;key&gt;=&lt;value&gt;</span> <span class="string">&lt;key&gt;=&lt;value&gt;</span> <span class="string">...</span></span><br></pre></td></tr></table></figure>
+<p><code>LABEL</code> 指令可以透過空白間隔把所有的資訊一次寫完，相比 <code>MAINTAINER</code> 來說較為方便。例如:</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">LABEL</span> <span class="string">description="This</span> <span class="string">is</span> <span class="string">sample</span> <span class="string">image"</span> <span class="string">version="1.0"</span> <span class="string">owner="Tom</span> <span class="string">Hanks"</span></span><br></pre></td></tr></table></figure>
+<p>如果要查看 <code>LABEL</code> 的資訊可以透過 <code>docker inspect</code> 來查詢。</p>
+<h3 id="AS"><a class="header-anchor" href="#AS"></a>AS</h3>
+<p>將 Image 賦予其他名稱，以下範例即為把 Image 命名為 base</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">FROM</span> <span class="string">&lt;ImageName&gt;:&lt;tag&gt;</span> <span class="string">AS</span> <span class="string">base</span></span><br></pre></td></tr></table></figure>
+<h3 id="WORKDIR"><a class="header-anchor" href="#WORKDIR"></a>WORKDIR</h3>
+<p>設定當前工作目錄</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">WORKDIR</span> <span class="string">&lt;path&gt;</span></span><br></pre></td></tr></table></figure>
+<p>Docker 會將當前的工作目錄移到指定的目錄下，若是沒有這個目錄則會自動建立一個。</p>
+<p>這裡的工作目錄是指 Image 的目錄不是本機專案下的目錄。</p>
+<h3 id="USER"><a class="header-anchor" href="#USER"></a>USER</h3>
+<p>指定運行 Container 時的用戶名稱或是 UID</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">USER</span> <span class="string">&lt;username&gt;</span></span><br><span class="line"><span class="string">USER</span> <span class="string">&lt;uid&gt;</span></span><br></pre></td></tr></table></figure>
+<p>當定義了 USER 後，Dockerfile 中的 <code>RUN</code>、<code>CMD</code>、<code>ENTRYPOINT</code> 等等的指令便會以 USER 指定的用戶來執行，但是該用戶必須要存在，否則就會指定失敗。</p>
+<h3 id="RUN"><a class="header-anchor" href="#RUN"></a>RUN</h3>
+<p>執行命令，可以是安裝軟體、建立檔案和目錄或是建立環境設定等等。</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># shell form</span></span><br><span class="line"><span class="string">RUN</span> <span class="string">&lt;Command&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># exec form</span></span><br><span class="line"><span class="string">RUN</span> <span class="string">["executable",</span> <span class="string">"param1"</span><span class="string">,</span> <span class="string">"param2"</span><span class="string">]</span></span><br></pre></td></tr></table></figure>
+<p><code>RUN</code> 可以用來執行 shell 指令，例如 dotnet build 或 dotnet publish。</p>
+<p>上面的範例介紹了兩種執行的格式，這裡說明一下使用的方法:</p>
+<ul>
+<li>shell form:<br>
+以 shell 的形式執行，Linux 預設是用 <code>/bin/sh -c</code>，而 Windows 預設是用 <code>cmd /S /C</code></li>
+<li>exec form:<br>
+以 exec 的形式執行，例如 Linux 不想用預設的 shell 執行指令，可以透過<br>
+<code>RUN[&quot;/bin/bash&quot;, &quot;-c&quot;, &quot;echo hello&quot;]</code>來指定想要的 shell</li>
+</ul>
+<p>Docker 官方也描述了 <code>shell</code> 和 <code>exec</code> 的區別:</p>
+<blockquote>
+<p>Unlike the shell form, the exec form does not invoke a command shell. This means that normal shell processing does not happen. For example, RUN [ “echo”, “$HOME” ] will not do variable substitution on $HOME.</p>
+</blockquote>
+<p>這段描述說明了 <code>exec</code> 執行並不會使用到 command shell，所以執行 <code>RUN [ &quot;echo&quot;, &quot;$HOME&quot; ]</code> 這種指令， <code>$HOME</code> 變數是不會被替換掉的，也就是會直接輸出 <code>$HOME</code> 這串字；如果想要有 <code>shell</code> 的處理功能那就必須指定 <code>shell</code> 來達成，例如: <code>RUN [ &quot;sh&quot;, &quot;-c&quot;, &quot;echo $HOME&quot; ]</code>。</p>
+<p>另外要特別注意的是，Dockerfile 中的每一個指令都是使用 Image 重新啟動一個 Container，並且在最上方新增一層可寫層再執行命令；執行完後以 Commit 的方式提交修改以產生新的 Image。所以每次執行都是獨立的 Container，不要當成 Shell Script 在寫。 下面舉一個簡單的例子:</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">RUN</span> <span class="string">cd</span> <span class="string">/app</span></span><br><span class="line"><span class="string">RUN</span> <span class="string">./test.sh</span></span><br></pre></td></tr></table></figure>
+<p>上面這個範例是想要切換到 <code>/app</code> 目錄下執行 <code>test.sh</code>，但是因為兩條指令是在不同的 Container上，所以會造成第二步要執行 <code>test.sh</code> 時，當下的工作目錄並不在 <code>/app</code> 目錄下，就會造成找不到 <code>test.sh</code>。</p>
+<p>不過你可能會覺得每次都要重新建立 Container 會非常耗資源和時間，Docker 官方給出了下面這段描述:</p>
+<blockquote>
+<p>Layering RUN instructions and generating commits conforms to the core concepts of Docker where commits are cheap and containers can be created from any point in an image’s history, much like source control.</p>
+</blockquote>
+<p>提交修改產生新的 Image非常的簡單也不耗資源，而且還可以選擇在任何一層建立 Container。這種層層堆疊的方式不斷疊加新的修改在 Image上，正符合了 Docker的核心理念。</p>
+<h3 id="COPY"><a class="header-anchor" href="#COPY"></a>COPY</h3>
+<p>複製來源的目錄或是文件到 Image 中的目錄下</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">COPY</span> <span class="string">[SourcePath,</span> <span class="string">TargetPath]</span></span><br><span class="line"><span class="string">COPY</span> <span class="string">SourcePath</span> <span class="string">TargetPath</span></span><br></pre></td></tr></table></figure>
+<p>路徑可以是絕對路徑或是相對路徑，但是一般都是使用相對路徑才會方便在不同電腦上執行。</p>
+<p>若是使用相對路徑要特別注意，來源的路徑是相對於執行 Docker 命令時所在的位置，不是 Dockerfile所在的位置。 而目標路徑就是相對於 <code>WORKDIR</code> 所設定的當前路徑。</p>
+<h3 id="ADD"><a class="header-anchor" href="#ADD"></a>ADD</h3>
+<p>除了等同於 COPY 的複製功能，還可以複製 URL 規格的檔案及解壓縮檔案。</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">ADD</span> <span class="string">[SourcePath,</span> <span class="string">TargetPath]</span></span><br><span class="line"><span class="string">ADD</span> <span class="string">SourcePath</span> <span class="string">TargetPath</span></span><br></pre></td></tr></table></figure>
+<p>如果複製下來的檔案是壓縮檔，<code>ADD</code> 指令會自動將檔案解壓縮。</p>
+<p>所以也可以直接從本機複製壓縮檔，<code>ADD</code> 指令同樣會自動解壓縮檔案，如下面的範例:</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">ADD</span> <span class="string">test.tar.gz</span> <span class="string">.</span></span><br></pre></td></tr></table></figure>
+<h3 id="CMD"><a class="header-anchor" href="#CMD"></a>CMD</h3>
+<p>設定 Image 啟動為 Containre 時預設要執行的指令</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># shell form</span></span><br><span class="line"><span class="string">CMD</span> <span class="string">command</span> <span class="string">parameter1</span> <span class="string">parameter2</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># exec form，官方推薦</span></span><br><span class="line"><span class="string">CMD["executable",</span> <span class="string">"param1"</span><span class="string">,</span> <span class="string">"param2"</span><span class="string">]</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 適用有定義ENTRYPOINT</span></span><br><span class="line"><span class="string">CMD["parameter1",</span> <span class="string">"param2"</span><span class="string">]</span></span><br></pre></td></tr></table></figure>
+<p>CMD 有三種格式，前兩個分別為 <code>shell</code> 和 <code>exec</code> 的形式，官方則較推薦 exec 的形式。</p>
+<p>第三種格式適用於有定義 <code>ENTRYPOINT</code> 指令的時候使用，<code>CMD</code> 中的參數會作為 <code>ENTRYPOINT</code> 的預設參數。</p>
+<p>這裡要特別注意的是，Dockerfile 中 <code>CMD</code> 只能有一行，若有多行則只有最後一行有效。此外，如果在 <code>docker run</code> 的時候有指定參數，那 <code>CMD</code> 就會被覆蓋掉。</p>
+<p>另外，<code>CMD</code> 和 <code>RUN</code> 是不一樣，<code>CMD</code> 在建置時期不會執行，是在 Image 啟動成 Container 時才執行；而 <code>RUN</code> 是在建置時期執行並且 Commit 結果。</p>
+<h3 id="ENTRYPOINT"><a class="header-anchor" href="#ENTRYPOINT"></a>ENTRYPOINT</h3>
+<p>和 <code>CMD</code> 一樣在啟動為 Container 時才會被執行，而且還可以和 <code>CMD</code> 合用。但是和 <code>CMD</code> 不同的是，<code>ENTRYPOINT</code> 一定會被執行，不會被覆蓋掉。 官方也推薦如果每次都要執行相同的指令建議用 <code>ENTRYPOINT</code>，而若是需要替換則使用 <code>CMD</code></p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># shell form</span></span><br><span class="line"><span class="string">ENTRYPOINT</span> <span class="string">command</span> <span class="string">param1</span> <span class="string">param2</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># exec form，官方推薦</span></span><br><span class="line"><span class="string">ENTRYPOINT</span> <span class="string">["executable",</span> <span class="string">"param1"</span><span class="string">,</span> <span class="string">"param2"</span><span class="string">]</span></span><br></pre></td></tr></table></figure>
+<p><code>ENTRYPOINT</code> 和 <code>CMD</code> 合用僅限 exec form才能使用，下面示範一個 <code>ENTRYPOINT</code> 和 <code>CMD</code> 合用的範例:</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">ENTRYPOINT</span> <span class="string">["curl"]</span></span><br><span class="line"><span class="string">CMD</span> <span class="string">["http://sample.com"]</span></span><br></pre></td></tr></table></figure>
+<p>這個範例會在 Container 啟動時執行 <code>curl http://sample.com</code>。</p>
+<h3 id="EXPOSE"><a class="header-anchor" href="#EXPOSE"></a>EXPOSE</h3>
+<p>宣告要對外開放的 Port Number</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">EXPOSE</span> <span class="string">&lt;port&gt;</span></span><br><span class="line"><span class="string">EXPOSE</span> <span class="string">&lt;port&gt;/&lt;protocol&gt;</span></span><br></pre></td></tr></table></figure>
+<p><code>EXPOSE</code> 指令預設使用 <code>tcp</code> 協定，若是需要使用 <code>udp</code> 也可以指定。例如:</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">EXPOSE</span> <span class="number">80</span><span class="string">/udp</span></span><br></pre></td></tr></table></figure>
+<p><code>EXPOSE</code> 指令並不會在 Container 啟動時真的打開 Port，要在 <code>docker run</code> 指定 <code>-p</code> 才會開啟，例如:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">docker run -p 80:80 ...</span><br><span class="line">docker run -p 1234:80 ...</span><br></pre></td></tr></table></figure>
+<h3 id="ENV"><a class="header-anchor" href="#ENV"></a>ENV</h3>
+<p>設定環境變數</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">ENV</span> <span class="string">&lt;key&gt;</span> <span class="string">&lt;value&gt;</span></span><br><span class="line"><span class="string">ENV</span> <span class="string">&lt;key&gt;=&lt;value&gt;</span></span><br></pre></td></tr></table></figure>
+<p><code>ENV</code> 有兩種格式，第一種 key 後面接空白，預設空白後面即為 value；而第二種比較清楚用等號連接。兩個都可以以空白為間隔依序串聯宣告。例如:</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">ENV</span> <span class="string">k1</span> <span class="string">v1</span></span><br><span class="line"><span class="string">ENV</span> <span class="string">k2</span> <span class="string">v2</span></span><br><span class="line"><span class="string">ENV</span> <span class="string">k3</span> <span class="string">v4</span> <span class="string">k4</span> <span class="string">v4</span></span><br><span class="line"></span><br><span class="line"><span class="string">ENV</span> <span class="string">k5=v5</span></span><br><span class="line"><span class="string">ENV</span> <span class="string">k6=v6</span> <span class="string">k7=v7</span></span><br></pre></td></tr></table></figure>
+<p>宣告完環境變數後其他指令就可以使用，也可以在之後建起來的 Container 使用，例如:</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">COPY</span> <span class="string">test.txt</span> <span class="string">k1</span></span><br></pre></td></tr></table></figure>
+<p>環境變數可以透過 <code>docker inspect</code> 來查看，也可以在啟動 Container 時使用 <code>--env</code> 或  <code>-e</code> 修改，例如:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker run --env &lt;key&gt;=&lt;value&gt; -e &lt;key&gt;=&lt;value&gt;</span><br></pre></td></tr></table></figure>
+<h3 id="ARG"><a class="header-anchor" href="#ARG"></a>ARG</h3>
+<p>宣告建置 Image 時要使用的參數</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">ARG</span> <span class="string">&lt;name&gt;</span></span><br><span class="line"><span class="string">ARG</span> <span class="string">&lt;name&gt;=&lt;value&gt;</span></span><br></pre></td></tr></table></figure>
+<p><code>ARG</code> 和 <code>ENV</code> 功能非常相似，都可以設定變數，但是差別在於 <code>ARG</code> 只提供在建置 Image 時使用，而 <code>ENV</code> 還可以在後續建立起來的 Container 使用。</p>
+<p>除了在 Dockerfile 中直接設定參數外，也可以在執行 <code>docker build</code> 時透過 <code>--build-arg</code> 傳入，例如:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker build --build-arg &lt;argName&gt;=&lt;value&gt; .</span><br></pre></td></tr></table></figure>
+<p>傳入之後需要在 Dockerfile 中宣告同樣的參數名稱才可以使用。</p>
+<p>另外，可以在參數宣告前先使用這個參數，但是要在真正取得參數的值之前宣告，若沒在取得值之前宣告就會造成取到空字串。例如:</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">FROM</span> <span class="string">busybox</span></span><br><span class="line"><span class="string">USER</span> <span class="string">$&#123;user:-some_user&#125;</span></span><br><span class="line"><span class="string">ARG</span> <span class="string">user</span></span><br><span class="line"><span class="string">USER</span> <span class="string">$user</span></span><br></pre></td></tr></table></figure>
+<p>第二行先使用了 <code>user</code> 這個參數，到了第三行有宣告 <code>user</code> 那後續再使用就不會有問題；而第三行的參數如果在 <code>docker build</code> 時有傳進來那就會有值，若沒有則還需要再指定值給他。</p>
+<p>還要注意一點，如果使用了<a href="#%E5%A4%9A%E9%9A%8E%E6%AE%B5%E5%BB%BA%E7%BD%AE">多階段建置</a>的話，在每個階段都要重新宣告一次變數才能使用。 例如:</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">FROM</span> <span class="string">busybox</span></span><br><span class="line"><span class="string">ARG</span> <span class="string">SETTINGS</span></span><br><span class="line"><span class="string">RUN</span> <span class="string">./run/setup</span> <span class="string">$SETTINGS</span></span><br><span class="line"></span><br><span class="line"><span class="string">FROM</span> <span class="string">busybox</span></span><br><span class="line"><span class="string">ARG</span> <span class="string">SETTINGS</span></span><br><span class="line"><span class="string">RUN</span> <span class="string">./run/other</span> <span class="string">$SETTINGS</span></span><br></pre></td></tr></table></figure>
+<h3 id="ONBUILD"><a class="header-anchor" href="#ONBUILD"></a>ONBUILD</h3>
+<p>如果這個 Image 是作為其他 Image 的基底的話，就需要定義 <code>ONBUILD</code> 指令</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">ONBUILD</span> <span class="string">&lt;INSTRUCTION&gt;</span></span><br></pre></td></tr></table></figure>
+<p><code>ONBUILD</code> 後面的指令會在其他 Image 將其作為基底時才觸發，這個 Image 本身在建立的時候不會執行這些指令。例如 Image BaseA 的 Dockerfile 定義如下:</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">...</span></span><br><span class="line"><span class="string">ONBUILD</span> <span class="string">ADD</span> <span class="string">.</span> <span class="string">/app/src</span></span><br><span class="line"><span class="string">ONBUILD</span> <span class="string">RUN</span> <span class="string">/usr/local/bin/python-build</span> <span class="string">--dir</span> <span class="string">/app/src</span></span><br><span class="line"><span class="string">...</span></span><br></pre></td></tr></table></figure>
+<p>Image B 使用 Image BaseA 當作基底，則 Image BaseA 的 ONBUILD指令就會被觸發，等同於以下指令:</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 以 BaseA 作為基底</span></span><br><span class="line"><span class="string">FROM</span> <span class="string">BaseA</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 觸發 BaseA 的 ONBUILD 指令，而這些指令不需要寫，Docker 會自己加</span></span><br><span class="line"><span class="string">ADD</span> <span class="string">.</span> <span class="string">/app/src</span></span><br><span class="line"><span class="string">RUN</span> <span class="string">/usr/local/bin/python-build</span> <span class="string">--dir</span> <span class="string">/app/src</span></span><br></pre></td></tr></table></figure>
+<h2 id="多階段建置"><a class="header-anchor" href="#多階段建置"></a>多階段建置</h2>
+<p>Docker 提供的多階段建置(Multi-Stage Builds)，可以將多個 Image 整合進一個 Dockerfile，使前面建置的 Image 可以讓後面使用。</p>
+<p>前面有提到 Image 是層層堆疊所建立出來的，所以在建置 Image 時檔案也會越來越大。不過我們都希望 Image 可以越小越好，多階段建置就可以幫我們解決這個問題。</p>
+<p>以 Dotnet 的應用程式來說，要執行 <code>dotnet build</code> 或是 <code>dotnet publish</code> 就需要有 <code>dotnet cli</code> 命令的 <code>Dotnet SDK</code> Image 作為基底才能執行。然而要把 Dotnet 應用執行起來只需要有 <code>Runtime</code> 的 Image 就可以了，並不需要含有 <code>SDK</code> 的Image。</p>
+<p>透過多階段建置，我們可以先使用具有 <code>SDK</code> 的 Image 作為基底來建置和產生發行的檔案，接著再把產生的發行檔案複製到只有 <code>Runtime</code> 的 Image，這樣就可以減少 Image 上多餘的資料層。</p>
+<p>下面以一個 Dotnet Core 3.1 的應用作為範例:</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">FROM</span> <span class="string">mcr.microsoft.com/dotnet/core/aspnet:3.1-buster-slim</span> <span class="string">AS</span> <span class="string">base</span></span><br><span class="line"><span class="string">WORKDIR</span> <span class="string">/app</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Expose Port</span></span><br><span class="line"><span class="string">EXPOSE</span> <span class="number">80</span></span><br><span class="line"><span class="string">EXPOSE</span> <span class="number">443</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Copy csproj and restore as distinct layers</span></span><br><span class="line"><span class="string">FROM</span> <span class="string">mcr.microsoft.com/dotnet/core/sdk:3.1-buster</span> <span class="string">AS</span> <span class="string">build</span></span><br><span class="line"></span><br><span class="line"><span class="string">ARG</span> <span class="string">BuildConfiguration=Debug</span></span><br><span class="line"></span><br><span class="line"><span class="string">WORKDIR</span> <span class="string">/src</span></span><br><span class="line"><span class="string">COPY</span> <span class="string">["Sample.WebService.WebUrl/Sample.WebService.WebUrl.WebApplication/Sample.WebService.WebUrl.WebApplication.csproj",</span> <span class="string">"Sample.WebService.WebUrl.WebApplication/"</span><span class="string">]</span></span><br><span class="line"><span class="string">RUN</span> <span class="string">dotnet</span> <span class="string">restore</span> <span class="string">"Sample.WebService.WebUrl.WebApplication/Sample.WebService.WebUrl.WebApplication.csproj"</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Copy everything else and build </span></span><br><span class="line"><span class="string">COPY</span> <span class="string">Sample.WebService.WebUrl/.</span> <span class="string">.</span></span><br><span class="line"><span class="string">WORKDIR</span> <span class="string">"/src/Sample.WebService.WebUrl.WebApplication"</span></span><br><span class="line"><span class="string">RUN</span> <span class="string">dotnet</span> <span class="string">build</span> <span class="string">"Sample.WebService.WebUrl.WebApplication.csproj"</span> <span class="string">-c</span> <span class="string">$BuildConfiguration</span> <span class="string">-o</span> <span class="string">/app/build</span></span><br><span class="line"></span><br><span class="line"><span class="string">FROM</span> <span class="string">build</span> <span class="string">AS</span> <span class="string">publish</span></span><br><span class="line"><span class="string">RUN</span> <span class="string">dotnet</span> <span class="string">publish</span> <span class="string">"Sample.WebService.WebUrl.WebApplication.csproj"</span> <span class="string">-c</span> <span class="string">$BuildConfiguration</span> <span class="string">-o</span> <span class="string">/app/publish</span></span><br><span class="line"></span><br><span class="line"><span class="string">FROM</span> <span class="string">base</span> <span class="string">AS</span> <span class="string">final</span></span><br><span class="line"><span class="string">WORKDIR</span> <span class="string">/app</span></span><br><span class="line"><span class="string">COPY</span> <span class="string">--from=publish</span> <span class="string">/app/publish</span> <span class="string">.</span></span><br><span class="line"><span class="string">ENTRYPOINT</span> <span class="string">["dotnet",</span> <span class="string">"Sample.WebService.WebUrl.WebApplication.dll"</span><span class="string">]</span></span><br></pre></td></tr></table></figure>
+<p>簡單說明上面的 Dockerfile 要做哪些事情 :</p>
+<ol>
+<li>以 <code>mcr.microsoft.com/dotnet/core/aspnet:3.1-buster-slim</code> 做為基底並命名為 base，這個Image就是只有 <code>Runtime</code> 而沒有 <code>SDK</code> 的Image</li>
+</ol>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">FROM</span> <span class="string">mcr.microsoft.com/dotnet/core/aspnet:3.1-buster-slim</span> <span class="string">AS</span> <span class="string">base</span></span><br></pre></td></tr></table></figure>
+<ol start="2">
+<li>設定檔案目前位置到 <code>/app</code></li>
+</ol>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">WORKDIR</span> <span class="string">/app</span></span><br></pre></td></tr></table></figure>
+<ol start="3">
+<li>宣告要開放的 Port Number</li>
+</ol>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Expose Port</span></span><br><span class="line"><span class="string">EXPOSE</span> <span class="number">80</span></span><br><span class="line"><span class="string">EXPOSE</span> <span class="number">443</span></span><br></pre></td></tr></table></figure>
+<ol start="4">
+<li>以 <code>mcr.microsoft.com/dotnet/core/sdk:3.1-buster</code> 做為建置的基底並命名為 build。這裡就是使用 SDK 的 Image，因為接下來需要對專案進行建置和發行</li>
+</ol>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">FROM</span> <span class="string">mcr.microsoft.com/dotnet/core/sdk:3.1-buster</span> <span class="string">AS</span> <span class="string">build</span></span><br></pre></td></tr></table></figure>
+<ol start="5">
+<li>設定一個參數 BuildConfiguration 供下方指令使用</li>
+</ol>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">ARG</span> <span class="string">BuildConfiguration=Debug</span></span><br></pre></td></tr></table></figure>
+<ol start="6">
+<li>設定檔案目前位置到 <code>/src</code> 目錄下</li>
+</ol>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">WORKDIR</span> <span class="string">/src</span></span><br></pre></td></tr></table></figure>
+<ol start="7">
+<li>複製編譯所需的檔案到 <code>/src</code> 目錄下</li>
+</ol>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">COPY</span> <span class="string">["Sample.WebService.WebUrl/Sample.WebService.WebUrl.WebApplication/Sample.WebService.WebUrl.WebApplication.csproj",</span> <span class="string">"Sample.WebService.WebUrl.WebApplication/"</span><span class="string">]</span></span><br></pre></td></tr></table></figure>
+<ol start="8">
+<li>復原所需的套件</li>
+</ol>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">RUN</span> <span class="string">dotnet</span> <span class="string">restore</span> <span class="string">"Sample.WebService.WebUrl.WebApplication/Sample.WebService.WebUrl.WebApplication.csproj"</span></span><br></pre></td></tr></table></figure>
+<ol start="9">
+<li>複製專案裡剩下的所有檔案</li>
+</ol>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">COPY</span> <span class="string">Sample.WebService.WebUrl/.</span> <span class="string">.</span></span><br></pre></td></tr></table></figure>
+<ol start="10">
+<li>設定檔案目前位置到 <code>/src/Sample.WebService.WebUrl.WebApplication</code></li>
+</ol>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">WORKDIR</span> <span class="string">"/src/Sample.WebService.WebUrl.WebApplication"</span></span><br></pre></td></tr></table></figure>
+<ol start="11">
+<li>執行 <code>dotnet build</code> 建置專案</li>
+</ol>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">RUN</span> <span class="string">dotnet</span> <span class="string">build</span> <span class="string">"Sample.WebService.WebUrl.WebApplication.csproj"</span> <span class="string">-c</span> <span class="string">$BuildConfiguration</span> <span class="string">-o</span> <span class="string">/app/build</span></span><br></pre></td></tr></table></figure>
+<ol start="12">
+<li>以 build 的成品做為發行基底並命名為 publish</li>
+</ol>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">FROM</span> <span class="string">build</span> <span class="string">AS</span> <span class="string">publish</span></span><br></pre></td></tr></table></figure>
+<ol start="13">
+<li>執行 <code>dotnet publish</code> 發行專案</li>
+</ol>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">RUN</span> <span class="string">dotnet</span> <span class="string">publish</span> <span class="string">"Sample.WebService.WebUrl.WebApplication.csproj"</span> <span class="string">-c</span> <span class="string">$BuildConfiguration</span> <span class="string">-o</span> <span class="string">/app/publish</span></span><br></pre></td></tr></table></figure>
+<ol start="14">
+<li>以 base 的成品做為基底並命名為 final，base 即為第一步使用的只有 <code>Runtime</code> 的 Image</li>
+</ol>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">FROM</span> <span class="string">base</span> <span class="string">AS</span> <span class="string">final</span></span><br></pre></td></tr></table></figure>
+<ol start="15">
+<li>設定檔案目前位置到 <code>/app</code></li>
+</ol>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">WORKDIR</span> <span class="string">/app</span></span><br></pre></td></tr></table></figure>
+<ol start="16">
+<li>從 publish 複製成品到 final 的 publish 資料夾，這一步正是上述介紹所提到的把用 <code>SDK</code> 建置發行好的成品複製到 <code>Runtime</code> 的 Image</li>
+</ol>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">COPY</span> <span class="string">--from=publish</span> <span class="string">/app/publish</span> <span class="string">.</span></span><br></pre></td></tr></table></figure>
+<ol start="17">
+<li>定義 Container 啟動時要執行的指令</li>
+</ol>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">ENTRYPOINT</span> <span class="string">["dotnet",</span> <span class="string">"Sample.WebService.WebUrl.WebApplication.dll"</span><span class="string">]</span></span><br></pre></td></tr></table></figure>
+<h2 id="使用-Dockerfile-建立-Image"><a class="header-anchor" href="#使用-Dockerfile-建立-Image"></a>使用 Dockerfile 建立 Image</h2>
+<p>介紹完了這麼多 Dockerfile 的指令和撰寫方式，最終就是要使用 Dockerfile 來建立出 Image。</p>
+<p>建立的方式是使用 <code>docker build</code> 來指定 Image 的名稱和 Dockerfile</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker build [OPTIONS] PATH/URL</span><br></pre></td></tr></table></figure>
+<p>Options 可以自己指定相關的設置，我們先看一個基本的範例:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker build -t sampleImage .</span><br></pre></td></tr></table></figure>
+<p>這個範例指定了一個參數 <code>-t</code>，<code>-t</code> 就是指定這個 Image 的名稱是甚麼，也可以加上 tag，例如: <code>-t sampleImage:2020.1</code>。而最後的 <code>.</code> 是指定 Dockerfile 的位置，這是假設 Dockerfile就在當前目錄下。</p>
+<p>呈上，較常見執行 Docker 指令的時候並不會剛好就跟 Dockerfile 在同一個目錄，所以可以透過 <code>-f</code> 來指定 Dockerfile 的路徑，例如:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker build -t sampleImage -f /Sample/Sample.Web/Dockerfile .</span><br></pre></td></tr></table></figure>
+<p>最後還是要指定 <code>.</code> 讓 Docker 知道 Dockerfile 是在指定的目錄下。</p>
+<p>Options 較常使用的就是 <code>-t</code> 和 <code>-f</code>，其他的設定是比較建議在啟動 Container 時再指定，這樣才能依照需求去設定啟動的 Container，設定上會比較有彈性。</p>
+<p>想要知道更多 <code>docker build</code> 的設定請參考 <a href="https://docs.docker.com/engine/reference/commandline/build/" target="_blank" rel="noopener">Docker官方</a>介紹。</p>
+<h2 id="參考"><a class="header-anchor" href="#參考"></a>參考</h2>
+<p>[1] <a href="https://medium.com/%E4%B8%80%E5%80%8B%E5%B0%8F%E5%B0%8F%E5%B7%A5%E7%A8%8B%E5%B8%AB%E7%9A%84%E9%9A%A8%E6%89%8B%E7%AD%86%E8%A8%98/docker-%E5%AD%B8%E7%BF%92%E7%AD%86%E8%A8%98-%E5%9B%9B-%E5%A6%82%E4%BD%95%E6%92%B0%E5%AF%ABdockerfile-2a209b485530" target="_blank" rel="noopener">Docker 學習筆記 (四) — 如何撰寫Dockerfile</a><br>
+[2] <a href="https://tachingchen.com/tw/blog/docker-multi-stage-builds/" target="_blank" rel="noopener">透過 Multi-Stage Builds 改善持續交付流程</a><br>
+[3] <a href="https://docs.docker.com/engine/reference/builder/" target="_blank" rel="noopener">Dockerfile reference</a><br>
+[4] <a href="https://docs.docker.com/engine/reference/commandline/build/" target="_blank" rel="noopener">docker build</a><br>
+[5] <a href="https://mileslin.github.io/2019/05/Docker-%E5%A4%9A%E9%9A%8E%E6%AE%B5%E5%BB%BA%E7%BD%AE%E6%98%A0%E5%83%8F%E6%AA%94/" target="_blank" rel="noopener">[Docker] 多階段建置映像檔</a><br>
+[6] <a href="https://www.jinnsblog.com/2018/12/docker-dockerfile-guide.html" target="_blank" rel="noopener">Docker – Dockerfile 指令教學，含範例解說</a></p>
+
+    </div>
+
+    
+    
+    
+      
+  <div class="popular-posts-header">系列文章</div>
+  <ul class="popular-posts">
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/docker-1_concept/" rel="bookmark">Docker (一) - 容器與Docker的基本概念</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/docker-compose/" rel="bookmark">Docker Compose</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/kubernetes-1_concept/" rel="bookmark">Kubernetes (一) - 基本概念</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/kubernetes-2_install/" rel="bookmark">Kubernetes (二) - 安裝和啟動 Kubernetes</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/kubernetes-3_pod/" rel="bookmark">Kubernetes (三) - 實戰 Pod 建立</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/open-container-initiative-oci/" rel="bookmark">OCI (Open Container Initiative)</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/docker-2_command/" rel="bookmark">Docker (二) - Docker的基本操作</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/kubernetes-5_horizontal-pod-autoscaler-hpa/" rel="bookmark">Kubernetes (五) - 實現 Pod 的 AutoScaling</a></div>
+    </li>
+    <li class="popular-posts-item">
+      <div class="popular-posts-title"><a href="/kubernetes-4_service-deployment-ingress/" rel="bookmark">Kubernetes (四) - Pod 進階應用 Service、Deployment、Ingress</a></div>
+    </li>
+  </ul>
+
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/tags/Container/" rel="tag"><i class="fa fa-tag"></i> Container</a>
+              <a href="/tags/Docker/" rel="tag"><i class="fa fa-tag"></i> Docker</a>
+              <a href="/tags/Dockerfile/" rel="tag"><i class="fa fa-tag"></i> Dockerfile</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/docker-2_command/" rel="prev" title="Docker (二) - Docker的基本操作">
+      <i class="fa fa-chevron-left"></i> Docker (二) - Docker的基本操作
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/docker-compose/" rel="next" title="Docker Compose">
+      Docker Compose <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<!-- tienyulin.github -->
+<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-8271558544185929"
+     data-ad-slot="8611071932"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Dockerfile-的組成"><span class="nav-number">1.</span> <span class="nav-text">Dockerfile 的組成</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#開頭代表註解"><span class="nav-number">1.1.</span> <span class="nav-text">#開頭代表註解</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#FROM"><span class="nav-number">1.2.</span> <span class="nav-text">FROM</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#MAINTAINER"><span class="nav-number">1.3.</span> <span class="nav-text">MAINTAINER</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#LABEL"><span class="nav-number">1.4.</span> <span class="nav-text">LABEL</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#AS"><span class="nav-number">1.5.</span> <span class="nav-text">AS</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#WORKDIR"><span class="nav-number">1.6.</span> <span class="nav-text">WORKDIR</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#USER"><span class="nav-number">1.7.</span> <span class="nav-text">USER</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#RUN"><span class="nav-number">1.8.</span> <span class="nav-text">RUN</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#COPY"><span class="nav-number">1.9.</span> <span class="nav-text">COPY</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ADD"><span class="nav-number">1.10.</span> <span class="nav-text">ADD</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#CMD"><span class="nav-number">1.11.</span> <span class="nav-text">CMD</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ENTRYPOINT"><span class="nav-number">1.12.</span> <span class="nav-text">ENTRYPOINT</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#EXPOSE"><span class="nav-number">1.13.</span> <span class="nav-text">EXPOSE</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ENV"><span class="nav-number">1.14.</span> <span class="nav-text">ENV</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ARG"><span class="nav-number">1.15.</span> <span class="nav-text">ARG</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ONBUILD"><span class="nav-number">1.16.</span> <span class="nav-text">ONBUILD</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#多階段建置"><span class="nav-number">2.</span> <span class="nav-text">多階段建置</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#使用-Dockerfile-建立-Image"><span class="nav-number">3.</span> <span class="nav-text">使用 Dockerfile 建立 Image</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#參考"><span class="nav-number">4.</span> <span class="nav-text">參考</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Tien-Yu Lin"
+      src="/images/tienyu.jpg">
+  <p class="site-author-name" itemprop="name">Tien-Yu Lin</p>
+  <div class="site-description" itemprop="description">Try not to become a man of success, but rather try to become a man of value. - Albert Einstein</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">45</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">28</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">29</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/tienyulin" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;tienyulin" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://hub.docker.com/u/tienyu" title="DockerHub → https:&#x2F;&#x2F;hub.docker.com&#x2F;u&#x2F;tienyu" rel="noopener" target="_blank"><i class="fab fa-docker fa-fw"></i>DockerHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:t.tienyulin@gmail.com" title="E-Mail → mailto:t.tienyulin@gmail.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.linkedin.com/in/tony-lin-79733714b/" title="Linkedin → https:&#x2F;&#x2F;www.linkedin.com&#x2F;in&#x2F;tony-lin-79733714b&#x2F;" rel="noopener" target="_blank"><i class="fab fa-linkedin fa-fw"></i>Linkedin</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+      <!--google_adsense-->	      
+      	 
+        <div class="links-of-blogroll-title">	     
+          <i class="fa fa-google"></i> AdSense	       
+          <ins class="adsbygoogle"	      
+              style="display:block"	     
+              data-ad-client="ca-pub-8271558544185929"	
+              data-ad-slot="8611071932"	
+              data-ad-format="auto"	
+              data-full-width-responsive="true"></ins>	
+          <script>	
+            (adsbygoogle = window.adsbygoogle || []).push({});	
+          </script>	
+        </div>	
+      	
+      <!--/google_adsense-->
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Tien-Yu Lin</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a>
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="Total Visitors">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="Total Views">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+  <script>
+    (function(){
+      var canonicalURL, curProtocol;
+      //Get the <link> tag
+      var x=document.getElementsByTagName("link");
+		//Find the last canonical URL
+		if(x.length > 0){
+			for (i=0;i<x.length;i++){
+				if(x[i].rel.toLowerCase() == 'canonical' && x[i].href){
+					canonicalURL=x[i].href;
+				}
+			}
+		}
+    //Get protocol
+	    if (!canonicalURL){
+	    	curProtocol = window.location.protocol.split(':')[0];
+	    }
+	    else{
+	    	curProtocol = canonicalURL.split(':')[0];
+	    }
+      //Get current URL if the canonical URL does not exist
+	    if (!canonicalURL) canonicalURL = window.location.href;
+	    //Assign script content. Replace current URL with the canonical URL
+      !function(){var e=/([http|https]:\/\/[a-zA-Z0-9\_\.]+\.baidu\.com)/gi,r=canonicalURL,t=document.referrer;if(!e.test(r)){var n=(String(curProtocol).toLowerCase() === 'https')?"https://sp0.baidu.com/9_Q4simg2RQJ8t7jm9iCKT-xh_/s.gif":"//api.share.baidu.com/s.gif";t?(n+="?r="+encodeURIComponent(document.referrer),r&&(n+="&l="+r)):r&&(n+="?l="+r);var i=new Image;i.src=n}}(window);})();
+  </script>
+
+
+
+
+  
+<script src="//cdn.jsdelivr.net/npm/algoliasearch@4/dist/algoliasearch-lite.umd.js"></script>
+<script src="//cdn.jsdelivr.net/npm/instantsearch.js@4/dist/instantsearch.production.min.js"></script>
+<script src="/js/algolia-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://tienyulin.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  var disqus_config = function() {
+    this.page.url = "https://tienyulin.github.io/docker-3_dockerfile/";
+    this.page.identifier = "docker-3_dockerfile/";
+    this.page.title = "Docker (三) - 撰寫 Dockerfile";
+    };
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: disqus_config
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://tienyulin.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>
